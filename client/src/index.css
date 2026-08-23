@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', 'Noto Sans Kannada', sans-serif;
+    @apply bg-warm text-charcoal;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Cinzel', 'Noto Sans Kannada', serif;
+    @apply tracking-wide font-bold;
+  }
+}
+
+/* Custom Scrollbar for premium experience */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-warm-dark;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-accent-dark/50 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-accent-dark;
+}
+
+/* Indian traditional patterns and design helper classes */
+.mandala-bg {
+  background-image: radial-gradient(rgba(122, 26, 41, 0.05) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+.traditional-border {
+  border: 4px double #C5A059;
+}
+
+.marigold-gradient {
+  background: linear-gradient(135deg, #D95D39 0%, #C5A059 100%);
+}
+
+.gold-shadow {
+  box-shadow: 0 4px 20px -2px rgba(197, 160, 89, 0.2);
+}

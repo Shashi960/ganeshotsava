@@ -8,6 +8,7 @@ interface Member {
   firstName: string;
   lastName: string;
   homeName?: string;
+  address?: string;
   photo?: string;
   memberType: string;
   role?: string;
@@ -29,6 +30,7 @@ export const AdminMembers: React.FC = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [homeName, setHomeName] = useState('');
+  const [address, setAddress] = useState('');
   const [memberType, setMemberType] = useState('Member');
   const [role, setRole] = useState('');
   const [phone, setPhone] = useState('');
@@ -103,6 +105,7 @@ export const AdminMembers: React.FC = () => {
     setFirstName('');
     setLastName('');
     setHomeName('');
+    setAddress('');
     setMemberType('Member');
     setRole('');
     setPhone('');
@@ -118,6 +121,7 @@ export const AdminMembers: React.FC = () => {
     setFirstName(m.firstName);
     setLastName(m.lastName);
     setHomeName(m.homeName || '');
+    setAddress(m.address || '');
     setMemberType(m.memberType);
     setRole(m.role || '');
     setPhone(m.phone || '');
@@ -134,6 +138,7 @@ export const AdminMembers: React.FC = () => {
       firstName,
       lastName,
       homeName,
+      address: address || undefined,
       photo: photo || undefined,
       memberType,
       role: role || undefined,
@@ -266,7 +271,7 @@ export const AdminMembers: React.FC = () => {
             </div>
 
             <form onSubmit={handleSave} className="space-y-4 text-sm text-charcoal">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="font-bold text-xs">First Name</label>
                   <input type="text" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full bg-warm border border-warm-dark rounded-lg p-2 outline-none" />
@@ -277,7 +282,7 @@ export const AdminMembers: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="font-bold text-xs">Home / Family Name</label>
                   <input type="text" value={homeName} onChange={(e) => setHomeName(e.target.value)} className="w-full bg-warm border border-warm-dark rounded-lg p-2 outline-none" />
@@ -292,7 +297,18 @@ export const AdminMembers: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="font-bold text-xs">Resident Address</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. Near Temple, Najagara" 
+                  value={address} 
+                  onChange={(e) => setAddress(e.target.value)} 
+                  className="w-full bg-warm border border-warm-dark rounded-lg p-2 outline-none" 
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="font-bold text-xs">Official Role / Pandal Position</label>
                   <input type="text" placeholder="e.g. Treasurer, Pandal Decorator..." value={role} onChange={(e) => setRole(e.target.value)} className="w-full bg-warm border border-warm-dark rounded-lg p-2 outline-none" />
@@ -303,7 +319,7 @@ export const AdminMembers: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="font-bold text-xs">Phone Number (Secure)</label>
                   <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-warm border border-warm-dark rounded-lg p-2 outline-none" />

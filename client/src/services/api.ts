@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: (import.meta as any).env.VITE_API_URL || '/api',
+  // @ts-ignore
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -40,7 +41,8 @@ api.interceptors.response.use(
 export const getImageUrl = (url?: string): string => {
   if (!url) return '';
   if (url.startsWith('/uploads')) {
-    const apiUrl = (import.meta as any).env.VITE_API_URL || '';
+    // @ts-ignore
+    const apiUrl = import.meta.env.VITE_API_URL || '';
     if (apiUrl) {
       const base = apiUrl.replace(/\/api$/, '').replace(/\/$/, '');
       return `${base}${url}`;

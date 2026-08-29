@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import api from '../services/api';
+import api, { getImageUrl } from '../services/api';
 import { Search, User, ShieldCheck, Mail, Phone, Calendar } from 'lucide-react';
 
 interface Member {
@@ -112,7 +112,7 @@ export const MembersView: React.FC = () => {
                   <div key={m._id} className="bg-white rounded-xl border-2 border-accent/30 p-5 shadow-sm text-center relative group overflow-hidden hover:border-accent transition">
                     <div className="h-20 w-20 mx-auto rounded-full bg-accent/15 border-2 border-accent flex items-center justify-center text-accent-dark font-extrabold text-xl mb-3 shadow-inner">
                       {m.photo ? (
-                        <img src={m.photo} alt={m.firstName} className="h-full w-full object-cover rounded-full" />
+                        <img src={getImageUrl(m.photo)} alt={m.firstName} className="h-full w-full object-cover rounded-full" />
                       ) : (
                         getInitials(m.firstName, m.lastName)
                       )}
@@ -151,7 +151,7 @@ export const MembersView: React.FC = () => {
                   <div key={m._id} className="bg-white rounded-xl border border-warm-dark p-4 shadow-sm text-center hover:border-accent transition">
                     <div className="h-16 w-16 mx-auto rounded-full bg-secondary/15 text-secondary font-extrabold flex items-center justify-center mb-3">
                       {m.photo ? (
-                        <img src={m.photo} alt={m.firstName} className="h-full w-full object-cover rounded-full" />
+                        <img src={getImageUrl(m.photo)} alt={m.firstName} className="h-full w-full object-cover rounded-full" />
                       ) : (
                         getInitials(m.firstName, m.lastName)
                       )}
@@ -179,7 +179,7 @@ export const MembersView: React.FC = () => {
                   <div key={m._id} className="bg-white rounded-xl border border-warm-dark p-4 shadow-sm text-center">
                     <div className="h-16 w-16 mx-auto rounded-full bg-accent/15 text-accent-dark font-extrabold flex items-center justify-center mb-3">
                       {m.photo ? (
-                        <img src={m.photo} alt={m.firstName} className="h-full w-full object-cover rounded-full" />
+                        <img src={getImageUrl(m.photo)} alt={m.firstName} className="h-full w-full object-cover rounded-full" />
                       ) : (
                         getInitials(m.firstName, m.lastName)
                       )}
@@ -212,7 +212,7 @@ export const MembersView: React.FC = () => {
                   <div key={m._id} className="bg-white rounded-xl border border-warm-dark p-4 shadow-sm text-center">
                     <div className="h-16 w-16 mx-auto rounded-full bg-sky-50 text-sky-600 font-extrabold flex items-center justify-center mb-3 border border-sky-200">
                       {m.photo ? (
-                        <img src={m.photo} alt={m.firstName} className="h-full w-full object-cover rounded-full" />
+                        <img src={getImageUrl(m.photo)} alt={m.firstName} className="h-full w-full object-cover rounded-full" />
                       ) : (
                         getInitials(m.firstName, m.lastName)
                       )}

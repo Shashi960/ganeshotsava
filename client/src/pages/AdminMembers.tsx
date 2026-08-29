@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../context/ToastContext';
-import api from '../services/api';
+import api, { getImageUrl } from '../services/api';
 import { Plus, Edit2, Trash2, Search, X, Shield } from 'lucide-react';
 
 interface Member {
@@ -334,7 +334,7 @@ export const AdminMembers: React.FC = () => {
                 <label className="font-bold text-xs block">Member Profile Photo</label>
                 <div className="flex items-center gap-4">
                   {photo ? (
-                    <img src={photo} alt="Preview" className="h-12 w-12 object-cover rounded-full border border-warm-dark" />
+                    <img src={getImageUrl(photo)} alt="Preview" className="h-12 w-12 object-cover rounded-full border border-warm-dark" />
                   ) : (
                     <div className="h-12 w-12 bg-warm border border-warm-dark rounded-full flex items-center justify-center text-charcoal-light font-bold text-[10px] uppercase">No Photo</div>
                   )}

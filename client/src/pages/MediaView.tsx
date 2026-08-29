@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import api from '../services/api';
+import api, { getImageUrl } from '../services/api';
 import { Image, Video as VideoIcon, Play, X, AlertCircle } from 'lucide-react';
 
 interface PhotoItem {
@@ -96,10 +96,10 @@ export const MediaView: React.FC = () => {
             {photos.map((ph) => (
               <div
                 key={ph._id}
-                onClick={() => setActiveLightbox(ph.image)}
+                onClick={() => setActiveLightbox(getImageUrl(ph.image))}
                 className="bg-white rounded-xl border border-warm-dark overflow-hidden shadow-sm hover:shadow cursor-pointer relative group aspect-square"
               >
-                <img src={ph.image} alt={ph.caption} className="h-full w-full object-cover group-hover:scale-105 transition duration-300" />
+                <img src={getImageUrl(ph.image)} alt={ph.caption} className="h-full w-full object-cover group-hover:scale-105 transition duration-300" />
                 {ph.caption && (
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-3 opacity-0 group-hover:opacity-100 transition duration-300">
                     <p className="text-white text-xs font-semibold line-clamp-2">{ph.caption}</p>
@@ -123,7 +123,7 @@ export const MediaView: React.FC = () => {
                 className="bg-white rounded-xl border border-warm-dark overflow-hidden shadow-sm hover:shadow cursor-pointer relative group flex flex-col"
               >
                 <div className="relative aspect-video overflow-hidden">
-                  <img src={vid.thumbnail} alt={vid.title} className="h-full w-full object-cover group-hover:scale-105 transition duration-300" />
+                  <img src={getImageUrl(vid.thumbnail)} alt={vid.title} className="h-full w-full object-cover group-hover:scale-105 transition duration-300" />
                   <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/45 transition">
                     <div className="h-12 w-12 bg-accent text-primary-dark rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition">
                       <Play className="h-6 w-6 fill-current ml-0.5" />
@@ -159,7 +159,7 @@ export const MediaView: React.FC = () => {
           <button className="absolute top-4 right-4 text-white hover:text-accent transition">
             <X className="h-8 w-8" />
           </button>
-          <img src={activeLightbox} alt="Enlarged gallery asset" className="max-h-full max-w-full object-contain rounded shadow-2xl" />
+          <img src={getImageUrl(activeLightbox)} alt="Enlarged gallery asset" className="max-h-full max-w-full object-contain rounded shadow-2xl" />
         </div>
       )}
 

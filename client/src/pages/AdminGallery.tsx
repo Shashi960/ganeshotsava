@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../context/ToastContext';
-import api from '../services/api';
+import api, { getImageUrl } from '../services/api';
 import { Image, Video as VideoIcon, Plus, Trash2, X, Play, Link as LinkIcon } from 'lucide-react';
 
 interface PhotoItem {
@@ -247,7 +247,7 @@ export const AdminGallery: React.FC = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
             {photos.map(ph => (
               <div key={ph._id} className="bg-white rounded-xl border border-warm-dark overflow-hidden shadow-sm relative group aspect-square flex flex-col justify-between">
-                <img src={ph.image} alt={ph.caption} className="h-full w-full object-cover" />
+                <img src={getImageUrl(ph.image)} alt={ph.caption} className="h-full w-full object-cover" />
                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition">
                   <button
                     onClick={() => handleDeletePhoto(ph._id)}
@@ -277,7 +277,7 @@ export const AdminGallery: React.FC = () => {
             {videos.map(vid => (
               <div key={vid._id} className="bg-white rounded-xl border border-warm-dark overflow-hidden shadow-sm relative group flex flex-col justify-between">
                 <div className="relative aspect-video">
-                  <img src={vid.thumbnail} alt={vid.title} className="h-full w-full object-cover" />
+                  <img src={getImageUrl(vid.thumbnail)} alt={vid.title} className="h-full w-full object-cover" />
                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition z-10">
                     <button
                       onClick={() => handleDeleteVideo(vid._id)}
@@ -324,7 +324,7 @@ export const AdminGallery: React.FC = () => {
                 <label className="font-bold text-xs block">Choose Gallery Photo</label>
                 <div className="flex items-center gap-4">
                   {photoUrl ? (
-                    <img src={photoUrl} alt="Preview" className="h-12 w-12 object-cover rounded-lg border border-warm-dark" />
+                    <img src={getImageUrl(photoUrl)} alt="Preview" className="h-12 w-12 object-cover rounded-lg border border-warm-dark" />
                   ) : (
                     <div className="h-12 w-12 bg-warm border border-warm-dark rounded-lg flex items-center justify-center text-charcoal-light font-bold text-[10px] uppercase">No File</div>
                   )}

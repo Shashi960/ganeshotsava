@@ -9,3 +9,6 @@ server/dist/
 .DS_Store
 .idea/
 .vscode/
+vite.config.ts.timestamp-*
+client/vite.config.ts.timestamp-*
+

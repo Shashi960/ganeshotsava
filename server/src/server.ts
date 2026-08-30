@@ -6,10 +6,24 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 
 import app from './app';
 import { connectDB } from './config/db';
+import { Setting } from './models/Setting';
+import { runSeed } from './seed/seed';
 
 const startServer = async () => {
   // Connect to Database
   await connectDB();
+
+  // Auto-seed if database settings are empty
+  try {
+    const settingsCount = await Setting.countDocuments();
+    if (settingsCount === 0) {
+      console.log('Database collections are empty. Auto-seeding production dataset...');
+      await runSeed(false);
+      console.log('Auto-seed completed successfully!');
+    }
+  } catch (err) {
+    console.error('Error during auto-seed check:', err);
+  }
 
   const PORT = process.env.PORT || 5000;
   const server = app.listen(PORT, () => {

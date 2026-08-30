@@ -19,11 +19,13 @@ import { KatheParticipant } from '../models/KatheParticipant';
 import { PrasadaDelivery } from '../models/PrasadaDelivery';
 import { AuctionItem } from '../models/AuctionItem';
 
-const seed = async () => {
+const seed = async (shouldClose = true) => {
   try {
     const connStr = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/ganeshotsava';
-    await mongoose.connect(connStr);
-    console.log('Connected to MongoDB for seeding...');
+    if (mongoose.connection.readyState === 0) {
+      await mongoose.connect(connStr);
+      console.log('Connected to MongoDB for seeding...');
+    }
 
     // Clean current database
     await Year.deleteMany({});
@@ -405,11 +407,21 @@ const seed = async () => {
     console.log('Seeded global system settings.');
 
     console.log('Database seeded successfully!');
-    mongoose.connection.close();
+    if (shouldClose) {
+      mongoose.connection.close();
+    }
   } catch (error) {
     console.error('Error seeding database:', error);
-    process.exit(1);
+    if (shouldClose) {
+      process.exit(1);
+    }
   }
 };
 
-seed();
+export const runSeed = async (shouldClose = true) => {
+  await seed(shouldClose);
+};
+
+if (process.argv[1] && (process.argv[1].includes('seed') || process.argv[1].includes('update_brochure') || process.argv[1].includes('change_admin_password'))) {
+  seed(true);
+}

@@ -109,7 +109,7 @@ export const Home: React.FC = () => {
         <div className="max-w-4xl mx-auto space-y-6 relative">
           <div className="flex justify-center mb-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-accent/20 border border-accent/40 text-accent uppercase tracking-widest">
-              <Sparkles className="h-3 w-3" /> 34th Ganeshotsava 2025
+              <Sparkles className="h-3 w-3" /> 35th Ganeshotsava 2025
             </span>
           </div>
 

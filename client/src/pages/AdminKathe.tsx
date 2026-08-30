@@ -19,6 +19,7 @@ interface Participant {
   place: Place | string;
   phone: string;
   notes?: string;
+  bookNo?: string;
   confirmed: boolean;
   registrationStatus: string;
   year: string;
@@ -250,7 +251,7 @@ export const AdminKathe: React.FC = () => {
                   <th className="p-4">Devotee Name</th>
                   <th className="p-4">Place / Area</th>
                   <th className="p-4">Contact</th>
-                  <th className="p-4">Sankalpa Notes</th>
+                  <th className="p-4">Book Number</th>
                   <th className="p-4">Year</th>
                   <th className="p-4">Status</th>
                   <th className="p-4 text-right">Actions</th>
@@ -274,8 +275,8 @@ export const AdminKathe: React.FC = () => {
                         {p.address && <span className="block text-[10px] text-charcoal-light/75 max-w-xs truncate">{p.address}</span>}
                       </div>
                     </td>
-                    <td className="p-4 text-charcoal-light italic max-w-xs truncate">
-                      {p.notes || '-'}
+                    <td className="p-4 text-charcoal font-bold">
+                      {p.bookNo || '-'}
                     </td>
                     <td className="p-4 font-bold text-charcoal">
                       {p.year}

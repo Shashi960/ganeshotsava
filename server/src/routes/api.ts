@@ -62,7 +62,7 @@ router.delete('/places/:id', authenticateJWT, requireRole(['ADMIN', 'SUPER_ADMIN
 // ================= KATHE PARTICIPANTS =================
 router.get('/kathe', KatheController.getKatheParticipants);
 router.get('/kathe/:id', KatheController.getKatheParticipantById);
-router.post('/kathe', KatheController.createKatheParticipant); // Register is open to public
+router.post('/kathe', authenticateJWT, KatheController.createKatheParticipant);
 router.put('/kathe/:id', authenticateJWT, requireRole(['ADMIN', 'SUPER_ADMIN']), KatheController.updateKatheParticipant);
 router.delete('/kathe/:id', authenticateJWT, requireRole(['ADMIN', 'SUPER_ADMIN']), KatheController.deleteKatheParticipant);
 

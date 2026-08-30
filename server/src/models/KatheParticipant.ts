@@ -10,6 +10,7 @@ export interface IKatheParticipant extends Document {
   registrationStatus: 'PENDING' | 'CONFIRMED';
   confirmed: boolean;
   notes?: string;
+  bookNo?: string;
   year: string;
 }
 
@@ -23,6 +24,7 @@ const KatheParticipantSchema = new Schema<IKatheParticipant>({
   registrationStatus: { type: String, enum: ['PENDING', 'CONFIRMED'], default: 'PENDING' },
   confirmed: { type: Boolean, default: false },
   notes: { type: String },
+  bookNo: { type: String },
   year: { type: String, required: true, index: true }
 }, { timestamps: true });
 

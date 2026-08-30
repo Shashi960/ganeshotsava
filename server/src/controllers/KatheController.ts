@@ -97,7 +97,8 @@ export const getKatheParticipants = async (req: Request, res: Response, next: Ne
       filter.$or = [
         { firstName: { $regex: search, $options: 'i' } },
         { lastName: { $regex: search, $options: 'i' } },
-        { homeName: { $regex: search, $options: 'i' } }
+        { homeName: { $regex: search, $options: 'i' } },
+        { bookNo: { $regex: search, $options: 'i' } }
       ];
     }
 

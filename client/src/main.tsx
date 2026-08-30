@@ -29,6 +29,7 @@ import { AdminGallery } from './pages/AdminGallery';
 import { AdminFinancials } from './pages/AdminFinancials';
 import { AdminKathe } from './pages/AdminKathe';
 import { AdminAuction } from './pages/AdminAuction';
+import { AdminUsers } from './pages/AdminUsers';
 
 import './index.css';
 
@@ -130,6 +131,14 @@ const AppLayout: React.FC = () => {
             element={
               <ProtectedRoute>
                 <AdminAuction />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute>
+                <AdminUsers />
               </ProtectedRoute>
             }
           />

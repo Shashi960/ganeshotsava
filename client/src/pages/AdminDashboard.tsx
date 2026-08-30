@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import {
   Calendar, Users, Truck, Sparkles, Shield,
-  Settings, ClipboardList, LayoutDashboard, Flame, Image, Coins
+  Settings, ClipboardList, LayoutDashboard, Flame, Image, Coins, BookOpen, CircleDollarSign
 } from 'lucide-react';
 
 interface Stats {
@@ -162,6 +162,24 @@ export const AdminDashboard: React.FC = () => {
                   <Coins className="h-8 w-8 text-emerald-600 mb-3" />
                   <h3 className="font-bold text-charcoal group-hover:text-emerald-600 transition">Jama Karchu & Donors</h3>
                   <p className="text-xs text-charcoal-light mt-1">Edit audited receipts, expenditures balance sheets, and donors list.</p>
+                </Link>
+
+                <Link
+                  to="/admin/kathe"
+                  className="bg-white rounded-xl border border-warm-dark p-5 hover:border-accent transition group"
+                >
+                  <BookOpen className="h-8 w-8 text-primary mb-3" />
+                  <h3 className="font-bold text-charcoal group-hover:text-primary transition">Satya Ganapati (Kathe)</h3>
+                  <p className="text-xs text-charcoal-light mt-1">View, search, confirm, delete, and download Kathe devotee registrations.</p>
+                </Link>
+
+                <Link
+                  to="/admin/auction"
+                  className="bg-white rounded-xl border border-warm-dark p-5 hover:border-accent transition group"
+                >
+                  <CircleDollarSign className="h-8 w-8 text-accent-dark mb-3" />
+                  <h3 className="font-bold text-charcoal group-hover:text-accent-dark transition">Auction Ledger</h3>
+                  <p className="text-xs text-charcoal-light mt-1">Manage Ganeshotsava auction items, winners, final bids, and payments.</p>
                 </Link>
 
                 {isSuperAdmin && (

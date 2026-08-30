@@ -27,6 +27,8 @@ import { AdminPrasada } from './pages/AdminPrasada';
 import { AdminSettings } from './pages/AdminSettings';
 import { AdminGallery } from './pages/AdminGallery';
 import { AdminFinancials } from './pages/AdminFinancials';
+import { AdminKathe } from './pages/AdminKathe';
+import { AdminAuction } from './pages/AdminAuction';
 
 import './index.css';
 
@@ -112,6 +114,22 @@ const AppLayout: React.FC = () => {
             element={
               <ProtectedRoute>
                 <AdminFinancials />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/kathe"
+            element={
+              <ProtectedRoute>
+                <AdminKathe />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/auction"
+            element={
+              <ProtectedRoute>
+                <AdminAuction />
               </ProtectedRoute>
             }
           />

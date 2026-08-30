@@ -132,7 +132,7 @@ export const AdminKathe: React.FC = () => {
         p.firstName,
         p.lastName,
         p.homeName || '',
-        p.phone,
+        p.phone || '',
         placeName || '',
         p.address || '',
         (p.notes || '').replace(/\r?\n|\r/g, ' '),
@@ -166,7 +166,7 @@ export const AdminKathe: React.FC = () => {
   // Filter logic
   const filteredParticipants = participants.filter(p => {
     const fullName = `${p.firstName} ${p.lastName}`.toLowerCase();
-    const matchesSearch = fullName.includes(search.toLowerCase()) || p.phone.includes(search);
+    const matchesSearch = fullName.includes(search.toLowerCase()) || (p.phone || '').includes(search);
     
     const placeId = p.place && typeof p.place === 'object' ? p.place._id : p.place;
     const matchesPlace = selectedPlace === 'all' || placeId === selectedPlace;

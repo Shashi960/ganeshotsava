@@ -124,7 +124,7 @@ export const AdminKathe: React.FC = () => {
     ];
 
     const rows = filteredParticipants.map(p => {
-      const placeName = typeof p.place === 'object' 
+      const placeName = p.place && typeof p.place === 'object' 
         ? (language === 'kn' ? p.place.nameKannada : p.place.name)
         : p.place;
       
@@ -168,7 +168,7 @@ export const AdminKathe: React.FC = () => {
     const fullName = `${p.firstName} ${p.lastName}`.toLowerCase();
     const matchesSearch = fullName.includes(search.toLowerCase()) || p.phone.includes(search);
     
-    const placeId = typeof p.place === 'object' ? p.place._id : p.place;
+    const placeId = p.place && typeof p.place === 'object' ? p.place._id : p.place;
     const matchesPlace = selectedPlace === 'all' || placeId === selectedPlace;
 
     const matchesStatus = selectedStatus === 'all' || p.registrationStatus === selectedStatus;

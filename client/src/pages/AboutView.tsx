@@ -28,7 +28,7 @@ export const AboutView: React.FC = () => {
           activeYear = settingsRes.data.settings.currentYear;
         }
       }
-      
+
       const prevYear = (parseInt(activeYear) - 1).toString();
       setArchivedYear(prevYear);
 
@@ -77,7 +77,7 @@ export const AboutView: React.FC = () => {
           <h3 className="font-bold text-primary text-lg flex items-center gap-1.5 border-b border-primary/15 pb-2">
             <Sparkles className="h-5 w-5 text-accent-dark" /> Sponsor Highlights
           </h3>
-          
+
           <div className="space-y-3 font-kannada text-xs sm:text-sm text-charcoal">
             <div className="space-y-0.5">
               <span className="text-[10px] font-bold text-secondary uppercase block">Idol Sponsor (ಗಣಪತಿ ಮೂರ್ತಿ ಸೇವಾದಾರರು)</span>
@@ -91,7 +91,7 @@ export const AboutView: React.FC = () => {
 
             <div className="space-y-0.5">
               <span className="text-[10px] font-bold text-secondary uppercase block">Bhajans Sponsor (ಭಜನಾ ಕಾರ್ಯಕ್ರಮದ ಪ್ರಾಯೋಜಕರು)</span>
-              <p className="font-bold text-charcoal-dark leading-snug">{settings.bhajansSponsor || "ತಿಮ್ಮಪ್ಪ ಆಚಾರ್ಯ ಹಾಗೂ ಮಾಯಿತಿ ಆಚಾರ್ಯ, ಸಾಲೇಬೈಲ್"}</p>
+              <p className="font-bold text-charcoal-dark leading-snug">{settings.bhajansSponsor || "ತಿಮ್ಮಪ್ಪ ಆಚಾರ್ಯ ಹಾಗೂ ಮಾರುತಿ ಎಂ. ಆಚಾರ್ಯ, ಸಾಲೇಬೈಲ್"}</p>
             </div>
 
             <div className="space-y-0.5">
@@ -101,7 +101,7 @@ export const AboutView: React.FC = () => {
 
             <div className="space-y-0.5">
               <span className="text-[10px] font-bold text-secondary uppercase block">Vrata Prasada Sponsor (ಸತ್ಯ ಗಣಪತಿ ವ್ರತದ ಪ್ರಸಾದ ಹಾಗೂ ಪೂಜಾ ಸೇವಾದಾರರು)</span>
-              <p className="font-bold text-charcoal-dark leading-snug">{settings.prasadaSponsor || "ಗಣಪತಿ ಆರ್. ನಾಯ್ಕ, ನಾಗೇಶ್ವರ ಕ್ರಾಸ್"}</p>
+              <p className="font-bold text-charcoal-dark leading-snug">{settings.prasadaSponsor || "ಗಣಪತಿ ಆರ್. ನಾಯ್ಕ"}</p>
             </div>
           </div>
         </div>
@@ -160,7 +160,7 @@ export const AboutView: React.FC = () => {
                   <span>{t('income')} (Receipts)</span>
                   <span>₹{totalIncome.toLocaleString()}</span>
                 </h3>
-                
+
                 <div className="border border-warm-dark rounded-lg overflow-hidden">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>

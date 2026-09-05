@@ -95,7 +95,7 @@ export const KatheView: React.FC = () => {
     try {
       const res = await api.get('/kathe');
       if (res.data.status === 'success') {
-        setParticipants(res.data.kathe);
+        setParticipants(res.data.participants || []);
       }
     } catch (err) {
       console.error(err);
@@ -207,9 +207,9 @@ export const KatheView: React.FC = () => {
   };
 
   // Filter Logic
-  const filteredParticipants = participants.filter(p => {
-    const fullName = `${p.firstName} ${p.lastName}`.toLowerCase();
-    const searchStr = search.toLowerCase();
+  const filteredParticipants = (participants || []).filter(p => {
+    const fullName = `${p.firstName || ''} ${p.lastName || ''}`.toLowerCase();
+    const searchStr = (search || '').toLowerCase();
     const matchesSearch = 
       fullName.includes(searchStr) || 
       (p.phone || '').includes(searchStr) || 

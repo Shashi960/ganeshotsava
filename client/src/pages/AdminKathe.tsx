@@ -50,7 +50,7 @@ export const AdminKathe: React.FC = () => {
       ]);
 
       if (participantsRes.data.status === 'success') {
-        setParticipants(participantsRes.data.kathe);
+        setParticipants(participantsRes.data.participants || []);
       }
       if (placesRes.data.status === 'success') {
         setPlaces(placesRes.data.places);
@@ -165,9 +165,13 @@ export const AdminKathe: React.FC = () => {
   };
 
   // Filter logic
-  const filteredParticipants = participants.filter(p => {
-    const fullName = `${p.firstName} ${p.lastName}`.toLowerCase();
-    const matchesSearch = fullName.includes(search.toLowerCase()) || (p.phone || '').includes(search);
+  const filteredParticipants = (participants || []).filter(p => {
+    const fullName = `${p.firstName || ''} ${p.lastName || ''}`.toLowerCase();
+    const searchStr = (search || '').toLowerCase();
+    const matchesSearch = 
+      fullName.includes(searchStr) || 
+      (p.phone || '').includes(searchStr) || 
+      (p.bookNo || '').toLowerCase().includes(searchStr);
     
     const placeId = p.place && typeof p.place === 'object' ? p.place._id : p.place;
     const matchesPlace = selectedPlace === 'all' || placeId === selectedPlace;

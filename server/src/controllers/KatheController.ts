@@ -139,7 +139,39 @@ export const getKatheParticipantById = async (req: Request, res: Response, next:
 
 export const createKatheParticipant = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const participant = await KatheParticipant.create(req.body);
+    const data: any = { ...req.body };
+
+    // Support single name field
+    if (data.name && !data.firstName) {
+      data.firstName = data.name.trim();
+      data.lastName = data.lastName || '';
+    } else if (data.firstName && !data.lastName) {
+      data.lastName = '';
+    }
+
+    // Support other/custom place
+    if ((data.place === 'other' || !data.place) && data.customPlace) {
+      const trimmedPlace = data.customPlace.trim();
+      const placeYear = data.year || '2026';
+
+      let existingPlace = await Place.findOne({
+        $or: [{ name: trimmedPlace }, { nameKannada: trimmedPlace }],
+        year: placeYear
+      });
+
+      if (!existingPlace) {
+        existingPlace = await Place.create({
+          name: trimmedPlace,
+          nameKannada: trimmedPlace,
+          active: true,
+          year: placeYear
+        });
+      }
+
+      data.place = existingPlace._id;
+    }
+
+    const participant = await KatheParticipant.create(data);
 
     // If confirmed, automatically create a Prasada Delivery record
     if (participant.confirmed) {
@@ -165,7 +197,15 @@ export const updateKatheParticipant = async (req: AuthRequest, res: Response, ne
     const oldPart = await KatheParticipant.findById(id);
     if (!oldPart) return next(new AppError('Participant not found', 404));
 
-    const participant = await KatheParticipant.findByIdAndUpdate(id, req.body, { new: true });
+    const data: any = { ...req.body };
+    if (data.name && !data.firstName) {
+      data.firstName = data.name.trim();
+      data.lastName = data.lastName || '';
+    } else if (data.firstName && !data.lastName) {
+      data.lastName = '';
+    }
+
+    const participant = await KatheParticipant.findByIdAndUpdate(id, data, { new: true });
     if (!participant) return next(new AppError('Participant update failed', 400));
 
     // If confirmation flipped to true, create Prasada Delivery record if it doesn't exist

@@ -46,11 +46,11 @@ export const KatheView: React.FC = () => {
   const [currentYearVal, setCurrentYearVal] = useState('2026');
 
   // Registration Form State
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [name, setName] = useState('');
   const [homeName, setHomeName] = useState('');
   const [address, setAddress] = useState('');
   const [place, setPlace] = useState('');
+  const [customPlace, setCustomPlace] = useState('');
   const [phone, setPhone] = useState('');
   const [bookNo, setBookNo] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -61,16 +61,22 @@ export const KatheView: React.FC = () => {
   const [selectedPlace, setSelectedPlace] = useState('all');
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
-  useEffect(() => {
-    // Fetch places
-    api.get('/places?active=true').then(res => {
-      if (res.data.status === 'success') {
+  const fetchPlaces = async () => {
+    try {
+      const res = await api.get('/places?active=true');
+      if (res.data.status === 'success' && res.data.places) {
         setPlaces(res.data.places);
-        if (res.data.places.length > 0) {
+        if (res.data.places.length > 0 && !place) {
           setPlace(res.data.places[0]._id);
         }
       }
-    }).catch(err => console.error(err));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlaces();
 
     // Fetch Vrata event dynamically to map dates/editions
     api.get('/events').then(res => {
@@ -109,21 +115,31 @@ export const KatheView: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firstName || !lastName || !place || !phone) {
-      showToast('Please fill in all required fields.', 'warning');
+    if (!name.trim()) {
+      showToast(language === 'kn' ? 'ದಯವಿಟ್ಟು ಭಕ್ತರ ಹೆಸರನ್ನು ನಮೂದಿಸಿ' : 'Please enter devotee name.', 'warning');
+      return;
+    }
+    if (!place || (place === 'other' && !customPlace.trim())) {
+      showToast(language === 'kn' ? 'ದಯವಿಟ್ಟು ಸ್ಥಳ / ಪ್ರದೇಶವನ್ನು ಆಯ್ಕೆಮಾಡಿ ಅಥವಾ ನಮೂದಿಸಿ' : 'Please select or enter place / area.', 'warning');
+      return;
+    }
+    if (!bookNo.trim()) {
+      showToast(language === 'kn' ? 'ದಯವಿಟ್ಟು ಪುಸ್ತಕ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ' : 'Please enter book number.', 'warning');
       return;
     }
 
     setSubmitting(true);
     try {
       const payload = {
-        firstName,
-        lastName,
-        homeName,
-        address,
+        name: name.trim(),
+        firstName: name.trim(),
+        lastName: '',
+        homeName: homeName.trim(),
+        address: address.trim(),
         place,
-        phone,
-        bookNo,
+        customPlace: place === 'other' ? customPlace.trim() : undefined,
+        phone: phone.trim(),
+        bookNo: bookNo.trim(),
         registrationStatus: 'PENDING',
         confirmed: false,
         year: currentYearVal
@@ -132,19 +148,20 @@ export const KatheView: React.FC = () => {
       const res = await api.post('/kathe', payload);
       if (res.data.status === 'success') {
         setSuccess(true);
-        showToast('Registration submitted successfully!', 'success');
+        showToast(language === 'kn' ? 'ನೋಂದಣಿ ಯಶಸ್ವಿಯಾಗಿ ಸಲ್ಲಿಕೆಯಾಗಿದೆ!' : 'Registration submitted successfully!', 'success');
         // Clear form
-        setFirstName('');
-        setLastName('');
+        setName('');
         setHomeName('');
         setAddress('');
+        setCustomPlace('');
         setPhone('');
         setBookNo('');
         fetchParticipants(); // Refresh list immediately
+        fetchPlaces(); // Refresh places in case a new place was added
       }
     } catch (error) {
       console.error(error);
-      showToast('Registration failed. Please try again.', 'error');
+      showToast(language === 'kn' ? 'ನೋಂದಣಿ ವಿಫಲವಾಗಿದೆ. ದಯವಿಟ್ಟು ಪುನಃ ಪ್ರಯತ್ನಿಸಿ.' : 'Registration failed. Please try again.', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -322,46 +339,41 @@ export const KatheView: React.FC = () => {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-charcoal block">First Name <span className="text-rose-500">*</span></label>
-                  <input
-                    type="text"
-                    required
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full bg-warm border border-warm-dark rounded-lg px-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-charcoal block">Last Name <span className="text-rose-500">*</span></label>
-                  <input
-                    type="text"
-                    required
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="w-full bg-warm border border-warm-dark rounded-lg px-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
-                  />
-                </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-charcoal block">
+                  {language === 'kn' ? 'ಭಕ್ತರ ಹೆಸರು (Name)' : 'Devotee Name'} <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder={language === 'kn' ? 'ಭಕ್ತರ ಹೆಸರು ನಮೂದಿಸಿ / Enter full name' : 'Enter devotee name'}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-warm border border-warm-dark rounded-lg px-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
+                />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-charcoal block">Home / Family Name</label>
+                  <label className="text-xs font-bold text-charcoal block">
+                    {language === 'kn' ? 'ಮನೆತನ / ಮನೆ ಹೆಸರು' : 'Home / Family Name'}
+                  </label>
                   <input
                     type="text"
-                    placeholder="e.g. Jyothi House"
+                    placeholder={language === 'kn' ? 'ಉದಾ. ಜ್ಯೋತಿ ನಿಲಯ / Jyothi House' : 'e.g. Jyothi House'}
                     value={homeName}
                     onChange={(e) => setHomeName(e.target.value)}
                     className="w-full bg-warm border border-warm-dark rounded-lg px-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-charcoal block">Book Number <span className="text-rose-500">*</span></label>
+                  <label className="text-xs font-bold text-charcoal block">
+                    {language === 'kn' ? 'ಪುಸ್ತಕ ಸಂಖ್ಯೆ (Book No)' : 'Book Number'} <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Book 12 / Receipt 45"
+                    placeholder={language === 'kn' ? 'ಉದಾ. Book 12 / Receipt 45' : 'e.g. Book 12 / Receipt 45'}
                     value={bookNo}
                     onChange={(e) => setBookNo(e.target.value)}
                     className="w-full bg-warm border border-warm-dark rounded-lg px-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
@@ -371,7 +383,9 @@ export const KatheView: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-charcoal block">Area / Place <span className="text-rose-500">*</span></label>
+                  <label className="text-xs font-bold text-charcoal block">
+                    {language === 'kn' ? 'ಸ್ಥಳ / ಪ್ರದೇಶ (Area / Place)' : 'Area / Place'} <span className="text-rose-500">*</span>
+                  </label>
                   <select
                     value={place}
                     onChange={(e) => setPlace(e.target.value)}
@@ -382,13 +396,18 @@ export const KatheView: React.FC = () => {
                         {language === 'kn' ? p.nameKannada : p.name}
                       </option>
                     ))}
+                    <option value="other">
+                      {language === 'kn' ? 'ಇತರೆ (ಹೊಸ ಸ್ಥಳ ನಮೂದಿಸಿ) / Other' : 'Other / ಇತರೆ (Enter New Area)'}
+                    </option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-charcoal block">Phone Number <span className="text-rose-500">*</span></label>
+                  <label className="text-xs font-bold text-charcoal block">
+                    {language === 'kn' ? 'ದೂರವಾಣಿ ಸಂಖ್ಯೆ (Phone Number)' : 'Phone Number'} <span className="text-xs font-normal text-charcoal-light">({language === 'kn' ? 'ಐಚ್ಛಿಕ' : 'Optional'})</span>
+                  </label>
                   <input
                     type="tel"
-                    required
+                    placeholder={language === 'kn' ? 'ಉದಾ. 9845012345 (ಐಚ್ಛಿಕ)' : 'e.g. 9845012345 (Optional)'}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     className="w-full bg-warm border border-warm-dark rounded-lg px-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
@@ -396,10 +415,29 @@ export const KatheView: React.FC = () => {
                 </div>
               </div>
 
+              {place === 'other' && (
+                <div className="space-y-1 bg-amber-50/50 p-3 rounded-lg border border-accent/30 animate-fadeIn">
+                  <label className="text-xs font-bold text-charcoal block">
+                    {language === 'kn' ? 'ಹೊಸ ಸ್ಥಳ / ಪ್ರದೇಶದ ಹೆಸರು ನಮೂದಿಸಿ' : 'Enter Place / Area Name'} <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder={language === 'kn' ? 'ಉದಾ. ಕುಮಟಾ, ಹೊನ್ನಾವರ, ಗೋಕರ್ಣ ಇತ್ಯಾದಿ' : 'e.g. Kumta, Honnavar, Gokarna etc.'}
+                    value={customPlace}
+                    onChange={(e) => setCustomPlace(e.target.value)}
+                    className="w-full bg-white border border-warm-dark rounded-lg px-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
+                  />
+                </div>
+              )}
+
               <div className="space-y-1">
-                <label className="text-xs font-bold text-charcoal block">Address</label>
+                <label className="text-xs font-bold text-charcoal block">
+                  {language === 'kn' ? 'ವಿಳಾಸ (Address)' : 'Address'}
+                </label>
                 <textarea
                   rows={2}
+                  placeholder={language === 'kn' ? 'ವಿಳಾಸ ನಮೂದಿಸಿ (ಐಚ್ಛಿಕ)' : 'Enter address (optional)'}
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   className="w-full bg-warm border border-warm-dark rounded-lg px-3 py-2 text-sm text-charcoal outline-none focus:border-accent resize-none"
@@ -411,7 +449,9 @@ export const KatheView: React.FC = () => {
                 disabled={submitting}
                 className="w-full bg-primary text-warm font-bold py-2.5 rounded-lg hover:bg-primary-light transition flex items-center justify-center gap-2"
               >
-                {submitting ? 'Submitting...' : 'Register Devotee'}
+                {submitting 
+                  ? (language === 'kn' ? 'ಸಲ್ಲಿಸಲಾಗುತ್ತಿದೆ...' : 'Submitting...') 
+                  : (language === 'kn' ? 'ಭಕ್ತರ ಹೆಸರು ನೋಂದಾಯಿಸಿ' : 'Register Devotee')}
                 <Send className="h-4 w-4" />
               </button>
             </form>
@@ -503,7 +543,7 @@ export const KatheView: React.FC = () => {
                       <td className="p-4 font-bold text-charcoal-light">{index + 1}</td>
                       <td className="p-4 font-bold text-charcoal">
                         <div>
-                          {p.firstName} {p.lastName}
+                          {`${p.firstName || ''} ${p.lastName || ''}`.trim()}
                           {p.homeName && <span className="block text-xs font-normal text-charcoal-light">Family: {p.homeName}</span>}
                         </div>
                       </td>

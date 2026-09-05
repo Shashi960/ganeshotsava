@@ -20,8 +20,7 @@ export const exportKatheToExcel = (
   options?: ExportKatheOptions
 ) => {
   const headers = options?.headers || [
-    'First Name',
-    'Last Name',
+    'Devotee Name',
     'Home/Family Name',
     'Phone Number',
     'Place/Area',
@@ -40,8 +39,7 @@ export const exportKatheToExcel = (
     }
 
     return [
-      p.firstName || '',
-      p.lastName || '',
+      `${p.firstName || ''} ${p.lastName || ''}`.trim(),
       p.homeName || '',
       p.phone ? String(p.phone).trim() : '',
       placeName,
@@ -57,8 +55,7 @@ export const exportKatheToExcel = (
 
   // Set column widths
   ws['!cols'] = [
-    { wch: 18 }, // First Name
-    { wch: 18 }, // Last Name
+    { wch: 24 }, // Devotee Name
     { wch: 22 }, // Home/Family Name
     { wch: 18 }, // Phone Number
     { wch: 20 }, // Place/Area
@@ -68,11 +65,11 @@ export const exportKatheToExcel = (
     { wch: 10 }  // Year
   ];
 
-  // Explicitly configure Phone Number (index 3 / col D) and Book Number (index 6 / col G)
+  // Explicitly configure Phone Number (index 2 / col C) and Book Number (index 5 / col F)
   // as String cell type ('s') with Text formatting ('@')
-  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:I1');
-  const phoneColIndex = 3;
-  const bookNoColIndex = 6;
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:H1');
+  const phoneColIndex = 2;
+  const bookNoColIndex = 5;
 
   for (let R = 1; R <= range.e.r; ++R) {
     const phoneAddr = XLSX.utils.encode_cell({ r: R, c: phoneColIndex });

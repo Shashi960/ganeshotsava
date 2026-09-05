@@ -268,7 +268,7 @@ export const AdminKathe: React.FC = () => {
                   <tr key={p._id} className="hover:bg-warm-dark/10 transition">
                     <td className="p-4 font-bold text-charcoal">
                       <div>
-                        {p.firstName} {p.lastName}
+                        {`${p.firstName || ''} ${p.lastName || ''}`.trim()}
                         {p.homeName && <span className="block text-xs font-normal text-charcoal-light">Family: {p.homeName}</span>}
                       </div>
                     </td>
@@ -277,7 +277,7 @@ export const AdminKathe: React.FC = () => {
                     </td>
                     <td className="p-4 text-charcoal-light">
                       <div>
-                        {p.phone}
+                        {p.phone || '-'}
                         {p.address && <span className="block text-[10px] text-charcoal-light/75 max-w-xs truncate">{p.address}</span>}
                       </div>
                     </td>

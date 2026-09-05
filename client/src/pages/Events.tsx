@@ -449,12 +449,26 @@ export const Events: React.FC = () => {
                     <span className="md:hidden text-xs font-extrabold text-secondary uppercase block mb-1">
                       {dayLabel} • {new Date(evt.date).toLocaleDateString()}
                     </span>
-                    <h3 className="text-lg sm:text-xl font-bold text-primary">
-                      {language === 'kn' ? evt.titleKannada : evt.title}
-                    </h3>
-                    <p className="text-sm sm:text-base text-charcoal-light leading-relaxed font-kannada">
+
+                    <div className="flex items-start justify-between gap-3">
+                      <h3 className="text-lg sm:text-xl font-bold text-primary leading-snug">
+                        {language === 'kn' ? evt.titleKannada : evt.title}
+                      </h3>
+                      {isAuthenticated && (
+                        <button
+                          onClick={() => handleOpenEditModal(evt)}
+                          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100/90 hover:bg-amber-200 text-amber-950 border border-amber-300 rounded-xl text-xs font-extrabold transition shadow-xs"
+                          title={language === 'kn' ? 'ಹೆಸರು ಮತ್ತು ಸೇವಾದಾರರ ವಿವರ ತಿದ್ದುಪಡಿ' : 'Edit Title & Sevadararu'}
+                        >
+                          <Edit2 className="h-3.5 w-3.5 text-accent-dark" />
+                          <span>{language === 'kn' ? 'ಹೆಸರು / ಸೇವಾದಾರರ ತಿದ್ದುಪಡಿ' : 'Edit Title & Sponsors'}</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="text-sm sm:text-base text-charcoal-light leading-relaxed font-kannada bg-warm/50 p-3 rounded-xl border border-warm-dark/50">
                       {language === 'kn' ? evt.descriptionKannada : evt.description}
-                    </p>
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs font-semibold text-charcoal-light pt-2">
@@ -506,33 +520,84 @@ export const Events: React.FC = () => {
             </div>
 
             <form onSubmit={handleSave} className="space-y-4 text-sm text-charcoal">
-              {/* Title Kannada */}
-              <div className="space-y-1">
-                <label className="font-bold text-xs block text-charcoal">
-                  {language === 'kn' ? 'ಕಾರ್ಯಕ್ರಮದ ಹೆಸರು (ಕನ್ನಡ) *' : 'Event Title (Kannada) *'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={titleKannada}
-                  onChange={(e) => setTitleKannada(e.target.value)}
-                  placeholder="ಉದಾ: ಶ್ರೀ ಗಣೇಶ ಮೂರ್ತಿಯ ಪ್ರತಿಷ್ಠಾಪನೆ ಹಾಗೂ ಪೂಜೆ"
-                  className="w-full bg-warm border border-warm-dark rounded-xl p-2.5 outline-none focus:border-accent font-semibold font-kannada"
-                />
+              {/* PRIMARY HIGHLIGHTED SECTION: Title Kannada & Sevadararu / Description Kannada */}
+              <div className="bg-amber-50/80 border-2 border-amber-300 rounded-2xl p-4 space-y-3.5 shadow-xs">
+                <div className="flex items-center justify-between pb-2 border-b border-amber-200">
+                  <span className="text-xs font-extrabold text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="h-4 w-4 text-accent-dark" />
+                    <span>{language === 'kn' ? 'ಮುಖ್ಯ ಕಾರ್ಯಕ್ರಮ ಹಾಗೂ ಸೇವಾದಾರರ ವಿವರಗಳು' : 'Main Event Title & Sevadararu (Sponsors)'}</span>
+                  </span>
+                  <span className="text-[10px] bg-amber-200/90 text-amber-950 font-bold px-2 py-0.5 rounded">
+                    {language === 'kn' ? 'ಕನ್ನಡ ಮಾಹಿತಿ' : 'Kannada'}
+                  </span>
+                </div>
+
+                {/* Title Kannada */}
+                <div className="space-y-1">
+                  <label className="font-bold text-xs block text-charcoal flex items-center justify-between">
+                    <span>{language === 'kn' ? 'ಕಾರ್ಯಕ್ರಮದ ಹೆಸರು (ಕನ್ನಡ) *' : 'Event / Program Title (Kannada) *'}</span>
+                    <span className="text-[10px] text-primary font-bold">{language === 'kn' ? 'ಮುಖ್ಯ ಶೀರ್ಷಿಕೆ' : 'Main Title'}</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={titleKannada}
+                    onChange={(e) => setTitleKannada(e.target.value)}
+                    placeholder="ಉದಾ: ಶ್ರೀ ಗಣೇಶ ಮೂರ್ತಿಯ ಪ್ರತಿಷ್ಠಾಪನೆ ಹಾಗೂ ಪೂಜೆ"
+                    className="w-full bg-white border border-amber-300 rounded-xl p-2.5 outline-none focus:border-primary font-bold text-base font-kannada text-charcoal shadow-inner"
+                  />
+                </div>
+
+                {/* Description & Sevadararu Kannada */}
+                <div className="space-y-1">
+                  <label className="font-bold text-xs block text-charcoal flex items-center justify-between">
+                    <span>{language === 'kn' ? 'ಕಾರ್ಯಕ್ರಮದ ವಿವರಣೆ ಹಾಗೂ ಸೇವಾದಾರರ ವಿವರ (ಕನ್ನಡ)' : 'Description & Sevadararu / Sponsors (Kannada)'}</span>
+                    <span className="text-[10px] text-accent-dark font-bold">{language === 'kn' ? 'ಸೇವಾದಾರರು / ಪ್ರಾಯೋಜಕರು' : 'Sevadararu'}</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={descriptionKannada}
+                    onChange={(e) => setDescriptionKannada(e.target.value)}
+                    placeholder="ಉದಾ: ಶ್ರೀ ಗಣೇಶ ಮೂರ್ತಿಯ ಪ್ರತಿಷ್ಠಾಪನೆ, ಪೂಜೆ. ಮೂರ್ತಿಯ ಸೇವಾದಾರರು: ಶ್ರೀಮತಿ ರತ್ನ ಮತ್ತು ಗಣೇಶ ನಾಗಪ್ಪ ನಾಯ್ಕ, ನಾಜಗಾರ..."
+                    className="w-full bg-white border border-amber-300 rounded-xl p-2.5 outline-none focus:border-primary font-kannada text-sm text-charcoal leading-relaxed shadow-inner"
+                  />
+                  <p className="text-[11px] text-amber-900/80 italic">
+                    {language === 'kn'
+                      ? '💡 ಮೂರ್ತಿ ಸೇವಾದಾರರು, ಪ್ರಸಾದ ಅಥವಾ ಸೇವಾ ಪ್ರಾಯೋಜಕರ ಹೆಸರುಗಳನ್ನು ಇಲ್ಲಿ ನೇರವಾಗಿ ತಿದ್ದುಪಡಿ ಮಾಡಿ ಉಳಿಸಿ.'
+                      : '💡 Mention the names of the sevadararu / sponsors and festival program details here.'}
+                  </p>
+                </div>
               </div>
 
-              {/* Title English */}
-              <div className="space-y-1">
-                <label className="font-bold text-xs block text-charcoal">
-                  {language === 'kn' ? 'ಕಾರ್ಯಕ್ರಮದ ಹೆಸರು (English)' : 'Event Title (English)'}
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Ganesha Idol Installation & Pooja"
-                  className="w-full bg-warm border border-warm-dark rounded-xl p-2.5 outline-none focus:border-accent"
-                />
+              {/* English Title & Description (Collapsible / Secondary) */}
+              <div className="bg-warm/40 border border-warm-dark/80 rounded-xl p-3 space-y-2.5">
+                <span className="text-[11px] font-bold text-charcoal-light uppercase tracking-wider block">
+                  English Details (Optional / ಐಚ್ಛಿಕ)
+                </span>
+                <div className="space-y-1">
+                  <label className="font-bold text-xs block text-charcoal">
+                    {language === 'kn' ? 'ಕಾರ್ಯಕ್ರಮದ ಹೆಸರು (English)' : 'Event Title (English)'}
+                  </label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="e.g. Ganesha Idol Installation & Pooja"
+                    className="w-full bg-white border border-warm-dark rounded-xl p-2 outline-none focus:border-accent"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-xs block text-charcoal">
+                    {language === 'kn' ? 'ವಿವರಣೆ (English)' : 'Description (English)'}
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Brief description or sponsors details in English..."
+                    className="w-full bg-white border border-warm-dark rounded-xl p-2 outline-none focus:border-accent resize-none text-xs"
+                  />
+                </div>
               </div>
 
               {/* Date & Category */}
@@ -649,34 +714,6 @@ export const Events: React.FC = () => {
                   </select>
                 </div>
               )}
-
-              {/* Description (Kannada) */}
-              <div className="space-y-1">
-                <label className="font-bold text-xs block text-charcoal">
-                  {language === 'kn' ? 'ವಿವರಣೆ / ಸೇವಾದಾರರ ಮಾಹಿತಿ (ಕನ್ನಡ)' : 'Description (Kannada)'}
-                </label>
-                <textarea
-                  rows={2}
-                  value={descriptionKannada}
-                  onChange={(e) => setDescriptionKannada(e.target.value)}
-                  placeholder="ವಿವರಣೆ ಅಥವಾ ಸೇವಾದಾರರ ಹೆಸರುಗಳನ್ನು ನಮೂದಿಸಿ"
-                  className="w-full bg-warm border border-warm-dark rounded-xl p-2.5 outline-none focus:border-accent resize-none font-kannada text-xs"
-                />
-              </div>
-
-              {/* Description (English) */}
-              <div className="space-y-1">
-                <label className="font-bold text-xs block text-charcoal">
-                  {language === 'kn' ? 'ವಿವರಣೆ (English)' : 'Description (English)'}
-                </label>
-                <textarea
-                  rows={2}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Description or sponsors details"
-                  className="w-full bg-warm border border-warm-dark rounded-xl p-2.5 outline-none focus:border-accent resize-none text-xs"
-                />
-              </div>
 
               {/* Featured Checkbox */}
               <div className="flex items-center gap-2 pt-1">

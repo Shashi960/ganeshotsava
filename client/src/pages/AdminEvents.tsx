@@ -312,13 +312,20 @@ export const AdminEvents: React.FC = () => {
                 <div key={evt._id} className="bg-white rounded-xl border border-warm-dark p-4 shadow-sm space-y-3">
                   <div className="flex items-start justify-between gap-2 border-b border-warm-dark pb-2">
                     <div>
-                      <h3 className="font-extrabold text-charcoal text-base">{evt.title}</h3>
-                      <p className="text-xs text-charcoal-light font-kannada">{evt.titleKannada}</p>
+                      <h3 className="font-extrabold text-primary text-base font-kannada">{evt.titleKannada}</h3>
+                      <p className="text-xs text-charcoal-light font-medium">{evt.title}</p>
                     </div>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${period.color}`}>
                       {period.label}
                     </span>
                   </div>
+
+                  {evt.descriptionKannada && (
+                    <div className="text-xs text-charcoal bg-warm/50 p-2.5 rounded-xl border border-warm-dark font-kannada leading-relaxed">
+                      <span className="font-bold text-[11px] text-primary block mb-0.5">ಸೇವಾದಾರರು / ವಿವರಣೆ:</span>
+                      {evt.descriptionKannada}
+                    </div>
+                  )}
 
                   <div className="space-y-1 text-xs text-charcoal-light">
                     <div className="flex items-center gap-1.5 font-bold text-charcoal">
@@ -345,10 +352,10 @@ export const AdminEvents: React.FC = () => {
                   <div className="flex items-center justify-end gap-2 border-t border-warm-dark/60 pt-2">
                     <button
                       onClick={() => handleOpenEditModal(evt)}
-                      className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 transition"
+                      className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-300 text-amber-900 hover:bg-amber-100 transition shadow-xs"
                     >
-                      <Edit2 className="h-3.5 w-3.5" />
-                      <span>Edit</span>
+                      <Edit2 className="h-3.5 w-3.5 text-accent-dark" />
+                      <span>Edit / ತಿದ್ದುಪಡಿ</span>
                     </button>
                     <button
                       onClick={() => handleDuplicate(evt._id)}
@@ -376,7 +383,7 @@ export const AdminEvents: React.FC = () => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-warm-dark/40 border-b border-warm-dark text-xs font-bold text-charcoal-light uppercase">
-                    <th className="p-4">Program Title</th>
+                    <th className="p-4">Program & Sevadararu</th>
                     <th className="p-4">Time Order</th>
                     <th className="p-4">Date</th>
                     <th className="p-4">Category</th>
@@ -390,9 +397,15 @@ export const AdminEvents: React.FC = () => {
                     return (
                       <tr key={evt._id} className="hover:bg-warm-dark/5 transition">
                         <td className="p-4">
-                          <div className="font-extrabold text-charcoal">{evt.title}</div>
-                          <div className="text-xs text-charcoal-light font-kannada">{evt.titleKannada}</div>
-                          <div className="text-[11px] text-charcoal-light flex items-center gap-1 mt-0.5">
+                          <div className="font-extrabold text-primary text-base font-kannada">{evt.titleKannada}</div>
+                          <div className="text-xs text-charcoal-light font-medium">{evt.title}</div>
+                          {evt.descriptionKannada && (
+                            <div className="mt-1.5 text-xs text-charcoal bg-warm/60 p-2 rounded-lg border border-warm-dark/60 font-kannada max-w-md leading-relaxed">
+                              <span className="font-bold text-primary mr-1">ಸೇವಾದಾರರು:</span>
+                              {evt.descriptionKannada}
+                            </div>
+                          )}
+                          <div className="text-[11px] text-charcoal-light flex items-center gap-1 mt-1.5">
                             <MapPin className="h-3 w-3 text-accent-dark" />
                             <span>{evt.location}</span>
                           </div>
@@ -478,51 +491,77 @@ export const AdminEvents: React.FC = () => {
             </div>
 
             <form onSubmit={handleSave} className="space-y-4 text-sm text-charcoal">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="font-bold text-xs">Title (English) *</label>
-                  <input
-                    type="text"
-                    required
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g. Mahaganapati Puja"
-                    className="w-full bg-warm border border-warm-dark rounded-xl p-2.5 outline-none focus:border-accent font-semibold"
-                  />
+              {/* PRIMARY HIGHLIGHTED SECTION: Title Kannada & Sevadararu / Description Kannada */}
+              <div className="bg-amber-50/80 border-2 border-amber-300 rounded-2xl p-4 space-y-3.5 shadow-xs">
+                <div className="flex items-center justify-between pb-2 border-b border-amber-200">
+                  <span className="text-xs font-extrabold text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="h-4 w-4 text-accent-dark" />
+                    <span>ಮುಖ್ಯ ಕಾರ್ಯಕ್ರಮ ಮತ್ತು ಸೇವಾದಾರರ ವಿವರಗಳು (Kannada Details)</span>
+                  </span>
+                  <span className="text-[10px] bg-amber-200/90 text-amber-950 font-bold px-2 py-0.5 rounded">
+                    ಕನ್ನಡ ಮಾಹಿತಿ
+                  </span>
                 </div>
+
                 <div className="space-y-1">
-                  <label className="font-bold text-xs">Title (Kannada) *</label>
+                  <label className="font-bold text-xs block text-charcoal flex items-center justify-between">
+                    <span>ಕಾರ್ಯಕ್ರಮದ ಹೆಸರು (ಕನ್ನಡ) * / Title (Kannada)</span>
+                    <span className="text-[10px] text-primary font-bold">ಮುಖ್ಯ ಶೀರ್ಷಿಕೆ</span>
+                  </label>
                   <input
                     type="text"
                     required
                     value={titleKannada}
                     onChange={(e) => setTitleKannada(e.target.value)}
-                    placeholder="e.g. ಮಹಾಗಣಪತಿ ಪೂಜೆ"
-                    className="w-full bg-warm border border-warm-dark rounded-xl p-2.5 outline-none focus:border-accent font-semibold"
+                    placeholder="ಉದಾ: ಶ್ರೀ ಗಣೇಶ ಮೂರ್ತಿಯ ಪ್ರತಿಷ್ಠಾಪನೆ ಹಾಗೂ ಪೂಜೆ"
+                    className="w-full bg-white border border-amber-300 rounded-xl p-2.5 outline-none focus:border-primary font-bold text-base font-kannada text-charcoal shadow-inner"
                   />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-xs block text-charcoal flex items-center justify-between">
+                    <span>ಸೇವಾದಾರರ ಹೆಸರು ಹಾಗೂ ವಿವರಣೆ (ಕನ್ನಡ) / Description & Sevadararu (Kannada)</span>
+                    <span className="text-[10px] text-accent-dark font-bold">ಸೇವಾದಾರರು / ಪ್ರಾಯೋಜಕರು</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={descriptionKannada}
+                    onChange={(e) => setDescriptionKannada(e.target.value)}
+                    placeholder="ಉದಾ: ಶ್ರೀ ಗಣೇಶ ಮೂರ್ತಿಯ ಪ್ರತಿಷ್ಠಾಪನೆ, ಪೂಜೆ. ಮೂರ್ತಿಯ ಸೇವಾದಾರರು: ಶ್ರೀಮತಿ ರತ್ನ ಮತ್ತು ಗಣೇಶ ನಾಗಪ್ಪ ನಾಯ್ಕ..."
+                    className="w-full bg-white border border-amber-300 rounded-xl p-2.5 outline-none focus:border-primary font-kannada text-sm text-charcoal leading-relaxed shadow-inner"
+                  />
+                  <p className="text-[11px] text-amber-900/80 italic">
+                    💡 ಮೂರ್ತಿ ಸೇವಾದಾರರು, ಅನ್ನಸಂತರ್ಪಣೆ ಅಥವಾ ಪೂಜಾ ಸೇವಾದಾರರ ಹೆಸರುಗಳನ್ನು ಇಲ್ಲಿ ನೇರವಾಗಿ ತಿದ್ದುಪಡಿ ಮಾಡಿ.
+                  </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="font-bold text-xs">Description (English)</label>
-                  <textarea
-                    rows={2}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Brief description of the program..."
-                    className="w-full bg-warm border border-warm-dark rounded-xl p-2.5 outline-none focus:border-accent resize-none"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="font-bold text-xs">Description (Kannada)</label>
-                  <textarea
-                    rows={2}
-                    value={descriptionKannada}
-                    onChange={(e) => setDescriptionKannada(e.target.value)}
-                    placeholder="ಕಾರ್ಯಕ್ರಮದ ವಿವರಣೆ..."
-                    className="w-full bg-warm border border-warm-dark rounded-xl p-2.5 outline-none focus:border-accent resize-none"
-                  />
+              {/* English Details */}
+              <div className="bg-warm/40 border border-warm-dark/80 rounded-xl p-3 space-y-2.5">
+                <span className="text-[11px] font-bold text-charcoal-light uppercase tracking-wider block">
+                  English Details (Optional)
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-xs">Title (English) *</label>
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="e.g. Mahaganapati Puja"
+                      className="w-full bg-white border border-warm-dark rounded-xl p-2 outline-none focus:border-accent font-semibold"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="font-bold text-xs">Description (English)</label>
+                    <textarea
+                      rows={2}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Brief description or sponsors in English..."
+                      className="w-full bg-white border border-warm-dark rounded-xl p-2 outline-none focus:border-accent resize-none text-xs"
+                    />
+                  </div>
                 </div>
               </div>
 

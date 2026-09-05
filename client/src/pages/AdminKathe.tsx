@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Download, Search, Trash2, CheckCircle, Clock } from 'lucide-react';
+import { BookOpen, Download, FileText, Search, Trash2, CheckCircle, Clock } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 import { exportKatheToExcel } from '../utils/excelExport';
+import { exportKatheToPdf } from '../utils/pdfExport';
 import api from '../services/api';
 
 interface Place {
@@ -37,6 +38,7 @@ export const AdminKathe: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedPlace, setSelectedPlace] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -106,6 +108,28 @@ export const AdminKathe: React.FC = () => {
     }
   };
 
+  // PDF Downloader Utility
+  const handleDownloadPdf = async () => {
+    if ((filteredParticipants || []).length === 0) {
+      showToast('No registrations found to download.', 'warning');
+      return;
+    }
+
+    setDownloadingPdf(true);
+    try {
+      showToast('Generating Kannada Unicode PDF...', 'info');
+      await exportKatheToPdf(filteredParticipants, language, {
+        filenamePrefix: 'kathe_registrations'
+      });
+      showToast('PDF downloaded successfully!', 'success');
+    } catch (err) {
+      console.error('Export PDF failed:', err);
+      showToast('Failed to generate PDF document.', 'error');
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
   // Excel (.xlsx) Downloader Utility
   const handleDownloadCSV = () => {
     if ((filteredParticipants || []).length === 0) {
@@ -161,13 +185,24 @@ export const AdminKathe: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={handleDownloadCSV}
-          className="flex items-center justify-center gap-1.5 text-xs font-bold uppercase bg-primary text-warm hover:bg-primary-light px-4 py-2.5 rounded-lg shadow-sm transition"
-        >
-          <Download className="h-4 w-4" />
-          <span>Export CSV / Download List</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleDownloadPdf}
+            disabled={downloadingPdf}
+            className="flex items-center justify-center gap-1.5 text-xs font-bold uppercase bg-primary text-warm hover:bg-primary-light px-4 py-2.5 rounded-lg shadow-sm transition disabled:opacity-50"
+          >
+            <FileText className="h-4 w-4" />
+            <span>{downloadingPdf ? 'Generating PDF...' : 'Download PDF'}</span>
+          </button>
+          <button
+            onClick={handleDownloadCSV}
+            title="Export Excel Spreadsheet"
+            className="flex items-center justify-center gap-1.5 text-xs font-bold uppercase bg-warm-dark hover:bg-warm-dark/85 text-charcoal px-3 py-2.5 rounded-lg shadow-sm border border-warm-dark transition"
+          >
+            <Download className="h-4 w-4" />
+            <span>Excel</span>
+          </button>
+        </div>
       </div>
 
       {/* Filters Bar */}

@@ -119,14 +119,34 @@ export const AdminDashboard: React.FC = () => {
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Link
-                  to="/admin/events"
-                  className="bg-white rounded-xl border border-warm-dark p-5 hover:border-accent transition group"
-                >
-                  <Calendar className="h-8 w-8 text-primary mb-3" />
-                  <h3 className="font-bold text-charcoal group-hover:text-primary transition">Events Manager</h3>
-                  <p className="text-xs text-charcoal-light mt-1">Create, update, delete, and duplicate Ganeshotsava daily events.</p>
-                </Link>
+                <div className="bg-white rounded-xl border border-warm-dark p-5 hover:border-accent transition group flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <Calendar className="h-8 w-8 text-primary" />
+                      <span className="text-xs bg-warm-dark text-primary px-2.5 py-0.5 rounded-full font-bold">
+                        {stats ? `${stats.todayEvents} Today • ${stats.upcomingEvents} Upcoming` : 'Events'}
+                      </span>
+                    </div>
+                    <h3 className="font-bold text-charcoal group-hover:text-primary transition">Events & Programs Manager</h3>
+                    <p className="text-xs text-charcoal-light mt-1">
+                      Add, edit program details (time, venue, seva sponsors), and manage festival schedule.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-warm-dark/50">
+                    <Link
+                      to="/admin/events"
+                      className="text-center text-xs font-bold bg-primary text-warm px-3 py-2 rounded-lg hover:bg-primary-light transition shadow-sm"
+                    >
+                      Admin Editor
+                    </Link>
+                    <Link
+                      to="/events"
+                      className="text-center text-xs font-bold border border-warm-dark bg-warm hover:bg-warm-dark text-charcoal px-3 py-2 rounded-lg transition"
+                    >
+                      Live Programs
+                    </Link>
+                  </div>
+                </div>
 
                 <Link
                   to="/admin/members"

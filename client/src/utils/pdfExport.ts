@@ -1,4 +1,17 @@
-import PDFDocument from 'pdfkit';
+// @ts-ignore
+import PDFDocument, { registerStdFonts } from 'pdfkit';
+// @ts-ignore
+import Helvetica from 'pdfkit/standard-fonts/Helvetica';
+// @ts-ignore
+import HelveticaBold from 'pdfkit/standard-fonts/HelveticaBold';
+
+try {
+  if (typeof registerStdFonts === 'function') {
+    registerStdFonts(Helvetica, HelveticaBold);
+  }
+} catch (e) {
+  // Ignore if already registered
+}
 
 export interface ExportKathePdfOptions {
   filenamePrefix?: string;
@@ -28,11 +41,12 @@ export const exportKatheToPdf = async (
 
   return new Promise((resolve, reject) => {
     try {
-      const doc = new PDFDocument({
+      const doc = new (PDFDocument as any)({
         layout: 'landscape',
         size: 'A4',
         margin: 36,
-        bufferPages: true
+        bufferPages: true,
+        font: fontBuffer
       });
 
       const chunks: any[] = [];

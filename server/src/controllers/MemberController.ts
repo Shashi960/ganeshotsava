@@ -25,7 +25,7 @@ const isUserAdmin = (req: Request): boolean => {
 
 // ----------------- MEMBERS CONTROLLERS -----------------
 export const getMembers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  const { year, memberType, active, search, page = 1, limit = 50 } = req.query;
+  const { year, memberType, active, search, page = 1, limit = 200 } = req.query;
   const filter: any = {};
 
   try {

@@ -89,7 +89,7 @@ export const AdminMembers: React.FC = () => {
 
   const fetchMembers = () => {
     setLoading(true);
-    api.get(`/members?search=${search}`).then(res => {
+    api.get(`/members?limit=200&search=${encodeURIComponent(search)}`).then(res => {
       if (res.data.status === 'success') {
         setMembers(res.data.members);
       }

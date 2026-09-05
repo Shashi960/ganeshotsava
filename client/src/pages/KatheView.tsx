@@ -9,7 +9,7 @@ import api from '../services/api';
 import { 
   BookOpen, Sparkles, Check, Send, Coins, 
   Search, Download, FileText, Lock, CheckCircle, Clock,
-  Edit2, X, MapPin, Phone
+  Edit2, Trash2, X, MapPin, Phone
 } from 'lucide-react';
 
 interface Place {
@@ -180,6 +180,25 @@ export const KatheView: React.FC = () => {
       showToast(language === 'kn' ? 'ನವೀಕರಣ ವಿಫಲವಾಗಿದೆ.' : 'Failed to update devotee details.', 'error');
     } finally {
       setSavingEdit(false);
+    }
+  };
+
+  const handleDelete = async (id: string, devoteeName?: string) => {
+    const confirmMsg = language === 'kn'
+      ? `ಖಚಿತವಾಗಿ ನೀವು "${devoteeName || 'ಈ ಭಕ್ತರ'}" ನೋಂದಣಿಯನ್ನು ಅಳಿಸಲು ಬಯಸುವಿರಾ?\n\nಗಮನಿಸಿ: ಇದು ಪ್ರಸಾದ ಪಟ್ಟಿಯಿಂದಲೂ ಇವರ ದಾಖಲೆಯನ್ನು ಅಳಿಸುತ್ತದೆ.`
+      : `Are you sure you want to delete the registration for "${devoteeName || 'this devotee'}"?\n\nNote: This will also remove their Prasada delivery record.`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      const res = await api.delete(`/kathe/${id}`);
+      if (res.data.status === 'success') {
+        showToast(language === 'kn' ? 'ನೋಂದಣಿಯನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಅಳಿಸಲಾಗಿದೆ.' : 'Devotee registration deleted successfully.', 'success');
+        setParticipants(prev => prev.filter(item => item._id !== id));
+      }
+    } catch (err) {
+      console.error(err);
+      showToast(language === 'kn' ? 'ನೋಂದಣಿ ಅಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.' : 'Failed to delete devotee registration.', 'error');
     }
   };
 
@@ -535,11 +554,32 @@ export const KatheView: React.FC = () => {
           <div>
             <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
               <BookOpen className="h-6 w-6 text-accent-dark" />
-              <span>Registered Devotees List</span>
+              <span>{language === 'kn' ? 'ನೋಂದಾಯಿತ ಭಕ್ತರ ಪಟ್ಟಿ' : 'Registered Devotees List'}</span>
+              <span className="text-xs bg-warm-dark text-primary px-2.5 py-0.5 rounded-full font-bold">
+                {participants.length}
+              </span>
             </h2>
-            <p className="text-xs text-charcoal-light mt-1">
-              Public read-only directory of devotees participating in this year's mass Sri Satya Ganapati Vrata.
-            </p>
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <p className="text-xs text-charcoal-light">
+                {language === 'kn' 
+                  ? 'ಶ್ರೀ ಸತ್ಯ ಗಣಪತಿ ವ್ರತದ ಸಾಮೂಹಿಕ ಸಂಕಲ್ಪದಲ್ಲಿ ಪಾಲ್ಗೊಳ್ಳುವ ಭಕ್ತರ ವಿವರಗಳು.'
+                  : "Directory of devotees participating in this year's mass Sri Satya Ganapati Vrata."}
+              </p>
+              {isAuthenticated ? (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-md">
+                  <CheckCircle className="h-3 w-3" />
+                  {language === 'kn' ? 'ನಿರ್ವಾಹಕ ಮೋಡ್ (ತಿದ್ದುಪಡಿ / ಅಳಿಸುವಿಕೆ ಸಕ್ರಿಯ)' : 'Admin Mode (Edit & Delete Enabled)'}
+                </span>
+              ) : (
+                <Link
+                  to="/admin/login"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:text-primary-dark underline"
+                >
+                  <Lock className="h-3 w-3" />
+                  {language === 'kn' ? 'ನಿರ್ವಾಹಕರೇ? ತಿದ್ದುಪಡಿ/ಅಳಿಸಲು ಲಾಗಿನ್ ಮಾಡಿ' : 'Admin? Login to Edit or Delete'}
+                </Link>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -643,13 +683,24 @@ export const KatheView: React.FC = () => {
                         </td>
                         {isAuthenticated && (
                           <td className="p-4 text-right">
-                            <button
-                              onClick={() => handleOpenEdit(p)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-primary hover:bg-warm-dark/40 rounded-lg transition border border-primary/20 shadow-sm"
-                            >
-                              <Edit2 className="h-3.5 w-3.5" />
-                              <span>{language === 'kn' ? 'ತಿದ್ದುಪಡಿ' : 'Edit'}</span>
-                            </button>
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => handleOpenEdit(p)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-primary hover:bg-warm-dark/40 rounded-lg transition border border-primary/20 shadow-sm"
+                                title={language === 'kn' ? 'ತಿದ್ದುಪಡಿ' : 'Edit'}
+                              >
+                                <Edit2 className="h-3.5 w-3.5" />
+                                <span>{language === 'kn' ? 'ತಿದ್ದುಪಡಿ' : 'Edit'}</span>
+                              </button>
+                              <button
+                                onClick={() => handleDelete(p._id, `${p.firstName || ''} ${p.lastName || ''}`.trim())}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition border border-rose-200 shadow-sm"
+                                title={language === 'kn' ? 'ಅಳಿಸಿ' : 'Delete'}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                <span>{language === 'kn' ? 'ಅಳಿಸಿ' : 'Delete'}</span>
+                              </button>
+                            </div>
                           </td>
                         )}
                       </tr>
@@ -680,14 +731,24 @@ export const KatheView: React.FC = () => {
                       )}
                     </div>
                     {isAuthenticated && (
-                      <button
-                        onClick={() => handleOpenEdit(p)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-primary hover:bg-warm-dark/40 rounded-lg transition border border-primary/20 shrink-0"
-                        title={language === 'kn' ? 'ತಿದ್ದುಪಡಿ' : 'Edit'}
-                      >
-                        <Edit2 className="h-3.5 w-3.5" />
-                        <span>{language === 'kn' ? 'ತಿದ್ದುಪಡಿ' : 'Edit'}</span>
-                      </button>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => handleOpenEdit(p)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-primary hover:bg-warm-dark/40 rounded-lg transition border border-primary/20"
+                          title={language === 'kn' ? 'ತಿದ್ದುಪಡಿ' : 'Edit'}
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                          <span>{language === 'kn' ? 'ತಿದ್ದುಪಡಿ' : 'Edit'}</span>
+                        </button>
+                        <button
+                          onClick={() => handleDelete(p._id, `${p.firstName || ''} ${p.lastName || ''}`.trim())}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition border border-rose-200"
+                          title={language === 'kn' ? 'ಅಳಿಸಿ' : 'Delete'}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span>{language === 'kn' ? 'ಅಳಿಸಿ' : 'Delete'}</span>
+                        </button>
+                      </div>
                     )}
                   </div>
 

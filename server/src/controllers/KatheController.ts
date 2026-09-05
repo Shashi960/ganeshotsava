@@ -174,15 +174,23 @@ export const createKatheParticipant = async (req: Request, res: Response, next: 
 
     const participant = await KatheParticipant.create(data);
 
-    // Automatically create a Prasada Delivery record for every registered participant
-    await PrasadaDelivery.create({
-      participant: participant._id,
-      homeName: participant.homeName,
-      address: participant.address,
-      place: participant.place,
-      status: 'PENDING',
-      year: participant.year || '2026'
-    });
+    // Automatically ensure a single Prasada Delivery record exists for every registered participant
+    await PrasadaDelivery.findOneAndUpdate(
+      { participant: participant._id },
+      {
+        $setOnInsert: {
+          participant: participant._id,
+          status: 'PENDING',
+          year: participant.year || '2026'
+        },
+        $set: {
+          homeName: participant.homeName,
+          address: participant.address,
+          place: participant.place
+        }
+      },
+      { upsert: true, new: true }
+    );
 
     res.status(201).json({ status: 'success', participant });
   } catch (error) {
@@ -279,33 +287,68 @@ export const deleteKatheParticipant = async (req: AuthRequest, res: Response, ne
 const syncPrasadaDeliveriesForYear = async (activeYear: string): Promise<void> => {
   try {
     const participants = await KatheParticipant.find({ year: activeYear });
-    if (!participants || participants.length === 0) return;
+    const participantIds = participants.map(p => p._id);
 
-    const existingDeliveries = await PrasadaDelivery.find({ year: activeYear });
-    const existingMap = new Map<string, any>();
-    existingDeliveries.forEach(d => {
-      if (d.participant) {
-        existingMap.set(d.participant.toString(), d);
-      }
+    // 1. Clean up orphaned deliveries whose participant was deleted
+    await PrasadaDelivery.deleteMany({
+      year: activeYear,
+      participant: { $nin: participantIds }
     });
 
-    const toCreate: any[] = [];
+    if (participants.length === 0) return;
+
+    // 2. Clean up any duplicate deliveries for the same participant
+    const existingDeliveries = await PrasadaDelivery.find({ year: activeYear }).sort({ createdAt: 1 });
+    const seenParticipants = new Set<string>();
+    const duplicateIds: any[] = [];
+
+    for (const d of existingDeliveries) {
+      if (!d.participant) {
+        duplicateIds.push(d._id);
+        continue;
+      }
+      const pStr = d.participant.toString();
+      if (seenParticipants.has(pStr)) {
+        duplicateIds.push(d._id);
+      } else {
+        seenParticipants.add(pStr);
+      }
+    }
+
+    if (duplicateIds.length > 0) {
+      await PrasadaDelivery.deleteMany({ _id: { $in: duplicateIds } });
+    }
+
+    // 3. Atomically upsert missing deliveries
+    const remainingDeliveries = await PrasadaDelivery.find({ year: activeYear });
+    const currentMap = new Set(remainingDeliveries.map(d => d.participant?.toString()));
+
+    const ops: any[] = [];
     for (const p of participants) {
-      const existing = existingMap.get(p._id.toString());
-      if (!existing) {
-        toCreate.push({
-          participant: p._id,
-          homeName: p.homeName,
-          address: p.address,
-          place: p.place,
-          status: 'PENDING',
-          year: p.year || activeYear
+      if (!currentMap.has(p._id.toString())) {
+        ops.push({
+          updateOne: {
+            filter: { participant: p._id },
+            update: {
+              $setOnInsert: {
+                participant: p._id,
+                status: 'PENDING',
+                year: p.year || activeYear
+              },
+              $set: {
+                homeName: p.homeName,
+                address: p.address,
+                place: p.place
+              }
+            },
+            upsert: true
+          }
         });
       }
     }
 
-    if (toCreate.length > 0) {
-      await PrasadaDelivery.insertMany(toCreate);
+    if (ops.length > 0) {
+      await PrasadaDelivery.bulkWrite(ops, { ordered: false });
     }
   } catch (err) {
     console.error('Error in syncPrasadaDeliveriesForYear:', err);

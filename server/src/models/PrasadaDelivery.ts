@@ -14,7 +14,7 @@ export interface IPrasadaDelivery extends Document {
 }
 
 const PrasadaDeliverySchema = new Schema<IPrasadaDelivery>({
-  participant: { type: Schema.Types.ObjectId, ref: 'KatheParticipant', required: true },
+  participant: { type: Schema.Types.ObjectId, ref: 'KatheParticipant', required: true, unique: true },
   homeName: { type: String },
   address: { type: String },
   place: { type: Schema.Types.ObjectId, ref: 'Place', required: true, index: true },

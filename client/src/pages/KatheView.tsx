@@ -3,6 +3,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
+import { exportKatheToExcel } from '../utils/excelExport';
 import api from '../services/api';
 import { 
   BookOpen, Sparkles, Check, Send, Coins, 
@@ -153,57 +154,23 @@ export const KatheView: React.FC = () => {
     return language === 'kn' ? placeObj.nameKannada : placeObj.name;
   };
 
-  // CSV Downloader
+  // Excel (.xlsx) Downloader
   const handleDownloadCSV = () => {
-    if (filteredParticipants.length === 0) {
+    if ((filteredParticipants || []).length === 0) {
       showToast('No participants found to download.', 'warning');
       return;
     }
 
-    const headers = [
-      'First Name',
-      'Last Name',
-      'Home/Family Name',
-      'Phone Number',
-      'Place/Area',
-      'Address',
-      'Book Number',
-      'Status',
-      'Year'
-    ];
-
-    const rows = filteredParticipants.map(p => {
-      const placeName = p.place && typeof p.place === 'object' 
-        ? (language === 'kn' ? p.place.nameKannada : p.place.name)
-        : p.place;
-      
-      return [
-        p.firstName,
-        p.lastName,
-        p.homeName || '',
-        p.phone || '',
-        placeName || '',
-        p.address || '',
-        p.bookNo || '',
-        p.registrationStatus,
-        p.year
-      ];
-    });
-
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(val => `"${val.replace(/"/g, '""')}"`).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `satya_ganapati_vrata_list_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('Download started!', 'success');
+    try {
+      exportKatheToExcel(filteredParticipants, language, {
+        filenamePrefix: 'satya_ganapati_vrata_list',
+        sheetName: 'Satya Ganapati Vrata'
+      });
+      showToast('Download started!', 'success');
+    } catch (err) {
+      console.error('Export failed:', err);
+      showToast('Failed to generate Excel file.', 'error');
+    }
   };
 
   // Filter Logic

@@ -204,7 +204,29 @@ export const updateKatheParticipant = async (req: AuthRequest, res: Response, ne
       data.lastName = '';
     }
 
-    const participant = await KatheParticipant.findByIdAndUpdate(id, data, { new: true });
+    // Support other/custom place
+    if ((data.place === 'other' || !data.place) && data.customPlace) {
+      const trimmedPlace = data.customPlace.trim();
+      const placeYear = data.year || oldPart.year || '2026';
+
+      let existingPlace = await Place.findOne({
+        $or: [{ name: trimmedPlace }, { nameKannada: trimmedPlace }],
+        year: placeYear
+      });
+
+      if (!existingPlace) {
+        existingPlace = await Place.create({
+          name: trimmedPlace,
+          nameKannada: trimmedPlace,
+          active: true,
+          year: placeYear
+        });
+      }
+
+      data.place = existingPlace._id;
+    }
+
+    const participant = await KatheParticipant.findByIdAndUpdate(id, data, { new: true }).populate('place');
     if (!participant) return next(new AppError('Participant update failed', 400));
 
     // Ensure or sync Prasada Delivery record

@@ -8,7 +8,8 @@ import { exportKatheToPdf } from '../utils/pdfExport';
 import api from '../services/api';
 import { 
   BookOpen, Sparkles, Check, Send, Coins, 
-  Search, Download, FileText, Lock, CheckCircle, Clock 
+  Search, Download, FileText, Lock, CheckCircle, Clock,
+  Edit2, X, MapPin, Phone
 } from 'lucide-react';
 
 interface Place {
@@ -61,6 +62,20 @@ export const KatheView: React.FC = () => {
   const [selectedPlace, setSelectedPlace] = useState('all');
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
+  // Admin Edit Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editHomeName, setEditHomeName] = useState('');
+  const [editPlace, setEditPlace] = useState('');
+  const [editCustomPlace, setEditCustomPlace] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editBookNo, setEditBookNo] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editYear, setEditYear] = useState('2026');
+  const [editConfirmed, setEditConfirmed] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+
   const fetchPlaces = async () => {
     try {
       const res = await api.get('/places?active=true');
@@ -110,6 +125,61 @@ export const KatheView: React.FC = () => {
       console.error(err);
     } finally {
       setLoadingList(false);
+    }
+  };
+
+  const handleOpenEdit = (p: Participant) => {
+    setEditingId(p._id);
+    const fullName = `${p.firstName || ''} ${p.lastName || ''}`.trim();
+    setEditName(fullName);
+    setEditHomeName(p.homeName || '');
+
+    const placeId = p.place && typeof p.place === 'object' ? p.place._id : (p.place || '');
+    setEditPlace(placeId);
+    setEditCustomPlace('');
+    setEditPhone(p.phone || '');
+    setEditBookNo(p.bookNo || '');
+    setEditAddress(p.address || '');
+    setEditYear(p.year || '2026');
+    setEditConfirmed(p.confirmed || false);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingId) return;
+    if (!editName.trim()) {
+      showToast(language === 'kn' ? 'ದಯವಿಟ್ಟು ಭಕ್ತರ ಹೆಸರನ್ನು ನಮೂದಿಸಿ' : 'Devotee name is required.', 'warning');
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      const payload: any = {
+        name: editName.trim(),
+        homeName: editHomeName.trim(),
+        place: editPlace,
+        customPlace: editPlace === 'other' ? editCustomPlace.trim() : undefined,
+        phone: editPhone.trim(),
+        bookNo: editBookNo.trim(),
+        address: editAddress.trim(),
+        year: editYear,
+        confirmed: editConfirmed,
+        registrationStatus: editConfirmed ? 'CONFIRMED' : 'PENDING'
+      };
+
+      const res = await api.put(`/kathe/${editingId}`, payload);
+      if (res.data.status === 'success' && res.data.participant) {
+        showToast(language === 'kn' ? 'ಮಾಹಿತಿಯನ್ನು ಯಶಸ್ವಿಯಾಗಿ ನವೀಕರಿಸಲಾಗಿದೆ!' : 'Devotee details updated successfully!', 'success');
+        const updated = res.data.participant;
+        setParticipants(prev => prev.map(item => item._id === editingId ? { ...item, ...updated } : item));
+        setIsEditModalOpen(false);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast(language === 'kn' ? 'ನವೀಕರಣ ವಿಫಲವಾಗಿದೆ.' : 'Failed to update devotee details.', 'error');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -522,62 +592,325 @@ export const KatheView: React.FC = () => {
         </div>
 
         {loadingList ? (
-          <div className="py-12 text-center text-charcoal-light font-semibold">Loading devotee directory...</div>
+          <div className="py-12 text-center text-charcoal-light font-semibold">
+            {language === 'kn' ? 'ಭಕ್ತರ ಪಟ್ಟಿಯನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...' : 'Loading devotee directory...'}
+          </div>
         ) : filteredParticipants.length > 0 ? (
-          <div className="bg-white rounded-xl border border-warm-dark overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-warm-dark/50 border-b border-warm-dark text-xs font-bold text-charcoal-light uppercase">
-                    <th className="p-4">Sl No</th>
-                    <th className="p-4">Devotee Name</th>
-                    <th className="p-4">Place / Area</th>
-                    <th className="p-4">Book Number</th>
-                    <th className="p-4">Year</th>
-                    <th className="p-4">Sankalpa Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-warm-dark text-sm">
-                  {filteredParticipants.map((p, index) => (
-                    <tr key={p._id} className="hover:bg-warm-dark/10 transition">
-                      <td className="p-4 font-bold text-charcoal-light">{index + 1}</td>
-                      <td className="p-4 font-bold text-charcoal">
-                        <div>
-                          {`${p.firstName || ''} ${p.lastName || ''}`.trim()}
-                          {p.homeName && <span className="block text-xs font-normal text-charcoal-light">Family: {p.homeName}</span>}
-                        </div>
-                      </td>
-                      <td className="p-4 text-charcoal-light font-medium font-kannada">
-                        {getPlaceName(p.place)}
-                      </td>
-                      <td className="p-4 text-charcoal font-bold">
-                        {p.bookNo || '-'}
-                      </td>
-                      <td className="p-4 font-bold text-charcoal">
-                        {p.year}
-                      </td>
-                      <td className="p-4">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border inline-flex items-center gap-1 ${
-                          p.confirmed
-                            ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                            : 'bg-amber-100 text-amber-800 border-amber-200'
-                        }`}>
-                          {p.confirmed ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                          {p.registrationStatus}
-                        </span>
-                      </td>
+          <div className="space-y-4">
+            {/* Desktop Table View */}
+            <div className="hidden sm:block bg-white rounded-xl border border-warm-dark overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-warm-dark/50 border-b border-warm-dark text-xs font-bold text-charcoal-light uppercase">
+                      <th className="p-4">Sl No</th>
+                      <th className="p-4">Devotee Name</th>
+                      <th className="p-4">Place / Area</th>
+                      <th className="p-4">Book Number</th>
+                      <th className="p-4">Year</th>
+                      <th className="p-4">Sankalpa Status</th>
+                      {isAuthenticated && <th className="p-4 text-right">Actions</th>}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-warm-dark text-sm">
+                    {filteredParticipants.map((p, index) => (
+                      <tr key={p._id} className="hover:bg-warm-dark/10 transition">
+                        <td className="p-4 font-bold text-charcoal-light">{index + 1}</td>
+                        <td className="p-4 font-bold text-charcoal">
+                          <div>
+                            {`${p.firstName || ''} ${p.lastName || ''}`.trim()}
+                            {p.homeName && <span className="block text-xs font-normal text-charcoal-light">Family: {p.homeName}</span>}
+                          </div>
+                        </td>
+                        <td className="p-4 text-charcoal-light font-medium font-kannada">
+                          {getPlaceName(p.place)}
+                        </td>
+                        <td className="p-4 text-charcoal font-bold">
+                          {p.bookNo || '-'}
+                        </td>
+                        <td className="p-4 font-bold text-charcoal">
+                          {p.year}
+                        </td>
+                        <td className="p-4">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border inline-flex items-center gap-1 ${
+                            p.confirmed
+                              ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                              : 'bg-amber-100 text-amber-800 border-amber-200'
+                          }`}>
+                            {p.confirmed ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                            {p.registrationStatus}
+                          </span>
+                        </td>
+                        {isAuthenticated && (
+                          <td className="p-4 text-right">
+                            <button
+                              onClick={() => handleOpenEdit(p)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-primary hover:bg-warm-dark/40 rounded-lg transition border border-primary/20 shadow-sm"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                              <span>{language === 'kn' ? 'ತಿದ್ದುಪಡಿ' : 'Edit'}</span>
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className="sm:hidden space-y-3">
+              {filteredParticipants.map((p, index) => (
+                <div key={p._id} className="bg-white border border-warm-dark rounded-xl p-4 shadow-sm space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="bg-warm-dark text-charcoal text-[11px] font-bold px-2 py-0.5 rounded-md">
+                          #{index + 1}
+                        </span>
+                        <h4 className="font-bold text-charcoal text-base">
+                          {`${p.firstName || ''} ${p.lastName || ''}`.trim()}
+                        </h4>
+                      </div>
+                      {p.homeName && (
+                        <p className="text-xs text-charcoal-light mt-0.5">
+                          Family: <span className="font-semibold text-charcoal">{p.homeName}</span>
+                        </p>
+                      )}
+                    </div>
+                    {isAuthenticated && (
+                      <button
+                        onClick={() => handleOpenEdit(p)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-primary hover:bg-warm-dark/40 rounded-lg transition border border-primary/20 shrink-0"
+                        title={language === 'kn' ? 'ತಿದ್ದುಪಡಿ' : 'Edit'}
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                        <span>{language === 'kn' ? 'ತಿದ್ದುಪಡಿ' : 'Edit'}</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-warm/60 p-2.5 rounded-lg">
+                    <div>
+                      <span className="text-charcoal-light block text-[10px] uppercase font-bold">Place / Area</span>
+                      <span className="font-semibold text-charcoal font-kannada flex items-center gap-1 mt-0.5">
+                        <MapPin className="h-3 w-3 text-accent-dark shrink-0" />
+                        {getPlaceName(p.place)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-charcoal-light block text-[10px] uppercase font-bold">Book No</span>
+                      <span className="font-bold text-primary text-sm mt-0.5 block">
+                        {p.bookNo || '-'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1 text-xs border-t border-warm-dark/40">
+                    <span className="text-charcoal-light font-medium">Year: <strong className="text-charcoal">{p.year}</strong></span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border inline-flex items-center gap-1 ${
+                      p.confirmed
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                        : 'bg-amber-100 text-amber-800 border-amber-200'
+                    }`}>
+                      {p.confirmed ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                      {p.registrationStatus}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-warm-dark p-12 text-center text-charcoal-light shadow-sm">
-            No registered devotees found matching your criteria.
+            {language === 'kn' ? 'ಯಾವುದೇ ಭಕ್ತರ ವಿವರಗಳು ಕಂಡುಬಂದಿಲ್ಲ.' : 'No registered devotees found matching your criteria.'}
           </div>
         )}
       </div>
+
+      {/* Admin Edit Kathe Participant Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-charcoal/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl my-8 relative border border-warm-dark">
+            <div className="flex justify-between items-center border-b border-warm-dark pb-3 mb-4">
+              <h3 className="text-lg font-bold text-primary flex items-center gap-2">
+                <Edit2 className="h-5 w-5 text-accent-dark" />
+                <span>{language === 'kn' ? 'ಭಕ್ತರ ವಿವರಗಳನ್ನು ತಿದ್ದುಪಡಿ ಮಾಡಿ' : 'Edit Devotee Details'}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="text-charcoal-light hover:text-charcoal transition p-1"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4 text-sm">
+              {/* Devotee Name & Family Name */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="font-bold text-xs block text-charcoal">
+                    {language === 'kn' ? 'ಭಕ್ತರ ಹೆಸರು (Devotee Name) *' : 'Devotee Name *'}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="Full name"
+                    className="w-full bg-warm border border-warm-dark rounded-xl p-2.5 outline-none focus:border-accent font-semibold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-xs block text-charcoal">
+                    {language === 'kn' ? 'ಮನೆಯ ಹೆಸರು (Family / House Name)' : 'Family / House Name'}
+                  </label>
+                  <input
+                    type="text"
+                    value={editHomeName}
+                    onChange={(e) => setEditHomeName(e.target.value)}
+                    placeholder="e.g. Kadur / Badiger"
+                    className="w-full bg-warm border border-warm-dark rounded-xl p-2.5 outline-none focus:border-accent"
+                  />
+                </div>
+              </div>
+
+              {/* Place / Area */}
+              <div className="space-y-1">
+                <label className="font-bold text-xs block text-charcoal">
+                  {language === 'kn' ? 'ಸ್ಥಳ / ಪ್ರದೇಶ (Place / Area) *' : 'Place / Area *'}
+                </label>
+                <select
+                  required
+                  value={editPlace}
+                  onChange={(e) => setEditPlace(e.target.value)}
+                  className="w-full bg-warm border border-warm-dark rounded-xl p-2.5 outline-none focus:border-accent font-medium"
+                >
+                  <option value="">-- Select Place --</option>
+                  {places.map(p => (
+                    <option key={p._id} value={p._id}>
+                      {p.name} ({p.nameKannada})
+                    </option>
+                  ))}
+                  <option value="other">+ Other Place (ಇತರ ಪ್ರದೇಶ)</option>
+                </select>
+              </div>
+
+              {/* Custom Place Input if 'other' is selected */}
+              {editPlace === 'other' && (
+                <div className="space-y-1">
+                  <label className="font-bold text-xs block text-primary">
+                    {language === 'kn' ? 'ಹೊಸ ಪ್ರದೇಶದ ಹೆಸರು ನಮೂದಿಸಿ *' : 'Enter Custom Area / Place Name *'}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editCustomPlace}
+                    onChange={(e) => setEditCustomPlace(e.target.value)}
+                    placeholder="Enter place name in Kannada or English"
+                    className="w-full bg-warm border border-accent rounded-xl p-2.5 outline-none font-semibold"
+                  />
+                </div>
+              )}
+
+              {/* Book Number & Phone Number */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="font-bold text-xs block text-charcoal">
+                    {language === 'kn' ? 'ಪುಸ್ತಕ ಸಂಖ್ಯೆ (Book Number)' : 'Book Number'}
+                  </label>
+                  <input
+                    type="text"
+                    value={editBookNo}
+                    onChange={(e) => setEditBookNo(e.target.value)}
+                    placeholder="e.g. 12"
+                    className="w-full bg-warm border border-warm-dark rounded-xl p-2.5 outline-none focus:border-accent font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-xs block text-charcoal">
+                    {language === 'kn' ? 'ದೂರವಾಣಿ ಸಂಖ್ಯೆ (Phone Number)' : 'Phone Number'}
+                  </label>
+                  <input
+                    type="tel"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    placeholder="Optional phone number"
+                    className="w-full bg-warm border border-warm-dark rounded-xl p-2.5 outline-none focus:border-accent"
+                  />
+                </div>
+              </div>
+
+              {/* Address */}
+              <div className="space-y-1">
+                <label className="font-bold text-xs block text-charcoal">
+                  {language === 'kn' ? 'ವಿಳಾಸ (Address)' : 'Address'}
+                </label>
+                <input
+                  type="text"
+                  value={editAddress}
+                  onChange={(e) => setEditAddress(e.target.value)}
+                  placeholder="Address or landmark"
+                  className="w-full bg-warm border border-warm-dark rounded-xl p-2.5 outline-none focus:border-accent"
+                />
+              </div>
+
+              {/* Year & Sankalpa Status */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="font-bold text-xs block text-charcoal">
+                    {language === 'kn' ? 'ವರ್ಷ (Year)' : 'Year'}
+                  </label>
+                  <input
+                    type="text"
+                    value={editYear}
+                    onChange={(e) => setEditYear(e.target.value)}
+                    className="w-full bg-warm border border-warm-dark rounded-xl p-2.5 outline-none focus:border-accent font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-xs block text-charcoal">
+                    {language === 'kn' ? 'ಸಂಕಲ್ಪ ಸ್ಥಿತಿ (Sankalpa Status)' : 'Sankalpa Status'}
+                  </label>
+                  <select
+                    value={editConfirmed ? 'CONFIRMED' : 'PENDING'}
+                    onChange={(e) => setEditConfirmed(e.target.value === 'CONFIRMED')}
+                    className="w-full bg-warm border border-warm-dark rounded-xl p-2.5 outline-none font-bold"
+                  >
+                    <option value="PENDING">PENDING (ಸಂಕಲ್ಪ ಬಾಕಿ)</option>
+                    <option value="CONFIRMED">CONFIRMED (ಸಂಕಲ್ಪ ಪೂರ್ಣ)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex justify-end gap-2 border-t border-warm-dark pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-4 py-2.5 border border-warm-dark rounded-xl text-charcoal hover:bg-warm font-semibold transition"
+                >
+                  {language === 'kn' ? 'ರದ್ದುಮಾಡಿ' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="px-5 py-2.5 bg-primary text-warm font-bold rounded-xl hover:bg-primary-light transition shadow disabled:opacity-50"
+                >
+                  {savingEdit 
+                    ? (language === 'kn' ? 'ಉಳಿಸಲಾಗುತ್ತಿದೆ...' : 'Saving...') 
+                    : (language === 'kn' ? 'ಬದಲಾವಣೆ ಉಳಿಸಿ' : 'Save Changes')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

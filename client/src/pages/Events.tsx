@@ -17,6 +17,58 @@ interface EventItem {
   team?: { name: string; nameKannada: string };
 }
 
+export const parseTimeToMinutes = (timeStr?: string): number => {
+  if (!timeStr || typeof timeStr !== 'string') return 0;
+  const s = timeStr.trim().toLowerCase();
+
+  const isKnMorning = s.includes('ಬೆಳಿಗ್ಗೆ') || s.includes('ಮುಂಜಾನೆ');
+  const isKnAfternoon = s.includes('ಮಧ್ಯಾಹ್ನ');
+  const isKnEvening = s.includes('ಸಂಜೆ');
+  const isKnNight = s.includes('ರಾತ್ರಿ');
+
+  const isPM = s.includes('pm') || isKnAfternoon || isKnEvening || isKnNight;
+  const isAM = s.includes('am') || isKnMorning;
+
+  const match = s.match(/(\d{1,2})(?::(\d{2}))?/);
+  if (!match) return 0;
+
+  let hours = parseInt(match[1], 10);
+  const minutes = match[2] ? parseInt(match[2], 10) : 0;
+
+  if (isPM && hours < 12) {
+    hours += 12;
+  } else if (isAM && hours === 12) {
+    hours = 0;
+  }
+
+  return hours * 60 + minutes;
+};
+
+const getTimePeriodBadge = (timeStr: string, lang: string) => {
+  const mins = parseTimeToMinutes(timeStr);
+  if (mins < 720) {
+    return {
+      label: lang === 'kn' ? 'ಬೆಳಿಗ್ಗೆ (Morning)' : 'Morning',
+      color: 'bg-amber-100 text-amber-900 border-amber-300'
+    };
+  } else if (mins < 1020) {
+    return {
+      label: lang === 'kn' ? 'ಮಧ್ಯಾಹ್ನ (Afternoon)' : 'Afternoon',
+      color: 'bg-orange-100 text-orange-900 border-orange-300'
+    };
+  } else if (mins < 1260) {
+    return {
+      label: lang === 'kn' ? 'ಸಂಜೆ (Evening)' : 'Evening',
+      color: 'bg-indigo-100 text-indigo-900 border-indigo-300'
+    };
+  } else {
+    return {
+      label: lang === 'kn' ? 'ರಾತ್ರಿ (Night)' : 'Night',
+      color: 'bg-purple-100 text-purple-900 border-purple-300'
+    };
+  }
+};
+
 export const Events: React.FC = () => {
   const { language, t } = useLanguage();
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -84,6 +136,14 @@ export const Events: React.FC = () => {
     return matchesDay && matchesCategory;
   });
 
+  // Strict chronological sort: Date first, then time (Morning 9am, 10am, afternoon, evening, night)
+  const sortedFilteredEvents = [...filteredEvents].sort((a, b) => {
+    const dateA = new Date(a.date).setHours(0, 0, 0, 0);
+    const dateB = new Date(b.date).setHours(0, 0, 0, 0);
+    if (dateA !== dateB) return dateA - dateB;
+    return parseTimeToMinutes(a.startTime) - parseTimeToMinutes(b.startTime);
+  });
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-10 space-y-8">
       <div className="text-center space-y-2">
@@ -91,7 +151,9 @@ export const Events: React.FC = () => {
           {t('navEvents')}
         </h1>
         <p className="text-charcoal-light max-w-lg mx-auto text-sm sm:text-base">
-          Explore the chronological program events of the 34th annual celebration.
+          {language === 'kn'
+            ? 'ಗಣೇಶೋತ್ಸವದ ಕಾರ್ಯಕ್ರಮಗಳ ಕಾಲಾವಧಿ ಮತ್ತು ಸಂಪೂರ್ಣ ವಿವರಗಳು.'
+            : 'Explore the chronological program schedule of Ganeshotsava.'}
         </p>
       </div>
 
@@ -133,10 +195,12 @@ export const Events: React.FC = () => {
       {/* Events Timeline */}
       {loading ? (
         <div className="py-20 text-center font-semibold text-charcoal-light">Loading schedule...</div>
-      ) : filteredEvents.length > 0 ? (
+      ) : sortedFilteredEvents.length > 0 ? (
         <div className="relative border-l-2 border-accent/40 ml-4 md:ml-32 pl-6 md:pl-10 space-y-8">
-          {filteredEvents.map((evt) => {
+          {sortedFilteredEvents.map((evt) => {
             const dayLabel = getDayLabel(evt.date);
+            const period = getTimePeriodBadge(evt.startTime, language);
+
             return (
               <div key={evt._id} className="relative group">
                 {/* Desktop Left-aligned Day Label */}
@@ -154,9 +218,15 @@ export const Events: React.FC = () => {
 
                 <div className="bg-white rounded-xl border border-warm-dark p-6 shadow-sm hover:shadow-md transition space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-warm-dark pb-2">
-                    <span className="inline-block text-[10px] font-bold tracking-widest uppercase bg-accent/20 text-primary px-2.5 py-0.5 rounded-full">
-                      {evt.category}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block text-[10px] font-bold tracking-widest uppercase bg-accent/20 text-primary px-2.5 py-0.5 rounded-full">
+                        {evt.category}
+                      </span>
+                      <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${period.color}`}>
+                        {period.label}
+                      </span>
+                    </div>
+
                     {evt.featured && (
                       <span className="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded">
                         ★ Featured
@@ -180,7 +250,7 @@ export const Events: React.FC = () => {
                   <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs font-semibold text-charcoal-light pt-2">
                     <div className="flex items-center gap-1.5">
                       <Clock className="h-4 w-4 text-secondary" />
-                      <span>{evt.startTime}</span>
+                      <span className="font-bold text-charcoal">{evt.startTime}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <MapPin className="h-4 w-4 text-accent-dark" />

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { Place } from '../models/Place';
 import { KatheParticipant } from '../models/KatheParticipant';
 import { PrasadaDelivery } from '../models/PrasadaDelivery';
+import { Setting } from '../models/Setting';
 import { Year } from '../models/Year';
 import { AppError } from '../middleware/errorHandler';
 import { logActivity } from '../utils/audit';
@@ -173,17 +174,15 @@ export const createKatheParticipant = async (req: Request, res: Response, next: 
 
     const participant = await KatheParticipant.create(data);
 
-    // If confirmed, automatically create a Prasada Delivery record
-    if (participant.confirmed) {
-      await PrasadaDelivery.create({
-        participant: participant._id,
-        homeName: participant.homeName,
-        address: participant.address,
-        place: participant.place,
-        status: 'PENDING',
-        year: participant.year
-      });
-    }
+    // Automatically create a Prasada Delivery record for every registered participant
+    await PrasadaDelivery.create({
+      participant: participant._id,
+      homeName: participant.homeName,
+      address: participant.address,
+      place: participant.place,
+      status: 'PENDING',
+      year: participant.year || '2026'
+    });
 
     res.status(201).json({ status: 'success', participant });
   } catch (error) {
@@ -208,22 +207,23 @@ export const updateKatheParticipant = async (req: AuthRequest, res: Response, ne
     const participant = await KatheParticipant.findByIdAndUpdate(id, data, { new: true });
     if (!participant) return next(new AppError('Participant update failed', 400));
 
-    // If confirmation flipped to true, create Prasada Delivery record if it doesn't exist
-    if (!oldPart.confirmed && participant.confirmed) {
-      const existing = await PrasadaDelivery.findOne({ participant: participant._id });
-      if (!existing) {
-        await PrasadaDelivery.create({
-          participant: participant._id,
-          homeName: participant.homeName,
-          address: participant.address,
-          place: participant.place,
-          status: 'PENDING',
-          year: participant.year
-        });
-      }
-    } else if (oldPart.confirmed && !participant.confirmed) {
-      // If unconfirmed, delete its pending prasada delivery
-      await PrasadaDelivery.findOneAndDelete({ participant: participant._id, status: 'PENDING' });
+    // Ensure or sync Prasada Delivery record
+    const existingDelivery = await PrasadaDelivery.findOne({ participant: participant._id });
+    if (!existingDelivery) {
+      await PrasadaDelivery.create({
+        participant: participant._id,
+        homeName: participant.homeName,
+        address: participant.address,
+        place: participant.place,
+        status: 'PENDING',
+        year: participant.year || '2026'
+      });
+    } else {
+      existingDelivery.homeName = participant.homeName;
+      existingDelivery.address = participant.address;
+      existingDelivery.place = participant.place;
+      existingDelivery.year = participant.year || '2026';
+      await existingDelivery.save();
     }
 
     await logActivity(req.user?.email || 'ADMIN', req.user?.role || 'ADMIN', 'UPDATE_KATHE_PARTICIPANT', 'KatheParticipant', id, oldPart, participant, req);
@@ -253,27 +253,93 @@ export const deleteKatheParticipant = async (req: AuthRequest, res: Response, ne
 };
 
 // ----------------- PRASADA DELIVERY CONTROLLERS -----------------
+
+const syncPrasadaDeliveriesForYear = async (activeYear: string): Promise<void> => {
+  try {
+    const participants = await KatheParticipant.find({ year: activeYear });
+    if (!participants || participants.length === 0) return;
+
+    const existingDeliveries = await PrasadaDelivery.find({ year: activeYear });
+    const existingMap = new Map<string, any>();
+    existingDeliveries.forEach(d => {
+      if (d.participant) {
+        existingMap.set(d.participant.toString(), d);
+      }
+    });
+
+    const toCreate: any[] = [];
+    for (const p of participants) {
+      const existing = existingMap.get(p._id.toString());
+      if (!existing) {
+        toCreate.push({
+          participant: p._id,
+          homeName: p.homeName,
+          address: p.address,
+          place: p.place,
+          status: 'PENDING',
+          year: p.year || activeYear
+        });
+      }
+    }
+
+    if (toCreate.length > 0) {
+      await PrasadaDelivery.insertMany(toCreate);
+    }
+  } catch (err) {
+    console.error('Error in syncPrasadaDeliveriesForYear:', err);
+  }
+};
+
+const getIsDeliveryOpen = async (): Promise<boolean> => {
+  try {
+    const setting = await Setting.findOne({ key: 'prasadaDeliveryOpen' });
+    if (!setting) return false;
+    return setting.value === true || setting.value === 'true';
+  } catch {
+    return false;
+  }
+};
+
 export const getPrasadaDeliveries = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  const { year, place, assignedVolunteer, status } = req.query;
+  const { year, place, assignedVolunteer, status, search } = req.query;
   const filter: any = {};
   try {
-    if (year) {
-      filter.year = year;
-    } else {
-      const activeYear = await Year.findOne({ isCurrent: true });
-      if (activeYear) filter.year = activeYear.year;
+    let activeYear = year as string;
+    if (!activeYear) {
+      const activeYearDoc = await Year.findOne({ isCurrent: true });
+      activeYear = activeYearDoc ? activeYearDoc.year : '2026';
     }
+    filter.year = activeYear;
+
+    // Automatically sync so all registered Kathe participants exist in Prasada deliveries
+    await syncPrasadaDeliveriesForYear(activeYear);
+
     if (place) filter.place = place;
     if (assignedVolunteer) filter.assignedVolunteer = assignedVolunteer;
     if (status) filter.status = status;
 
-    const deliveries = await PrasadaDelivery.find(filter)
+    let deliveries = await PrasadaDelivery.find(filter)
       .populate({ path: 'participant', populate: { path: 'place' } })
       .populate('place')
       .populate('assignedVolunteer')
       .sort({ createdAt: -1 });
 
-    res.status(200).json({ status: 'success', deliveries });
+    if (search && typeof search === 'string' && search.trim()) {
+      const s = search.toLowerCase().trim();
+      deliveries = deliveries.filter((d: any) => {
+        const p = d.participant;
+        const fullName = `${p?.firstName || ''} ${p?.lastName || ''}`.toLowerCase();
+        const home = (d.homeName || p?.homeName || '').toLowerCase();
+        const placeName = `${d.place?.name || ''} ${d.place?.nameKannada || ''} ${p?.place?.name || ''} ${p?.place?.nameKannada || ''}`.toLowerCase();
+        const book = (p?.bookNo || p?.notes || '').toLowerCase();
+        const phone = (p?.phone || '').toLowerCase();
+        return fullName.includes(s) || home.includes(s) || placeName.includes(s) || book.includes(s) || phone.includes(s);
+      });
+    }
+
+    const isDeliveryOpen = await getIsDeliveryOpen();
+
+    res.status(200).json({ status: 'success', deliveries, isDeliveryOpen });
   } catch (error) {
     next(error);
   }
@@ -297,6 +363,12 @@ export const updatePrasadaDelivery = async (req: AuthRequest, res: Response, nex
   const { id } = req.params;
   const { status, assignedVolunteer, notes } = req.body;
   try {
+    // Check if delivery status is open
+    const isDeliveryOpen = await getIsDeliveryOpen();
+    if (!isDeliveryOpen && req.user?.role !== 'SUPER_ADMIN') {
+      return next(new AppError('Prasada delivery is currently closed. Super Administrator must open delivery before statuses can be updated.', 403));
+    }
+
     const delivery = await PrasadaDelivery.findById(id);
     if (!delivery) return next(new AppError('Delivery record not found', 404));
 
@@ -337,6 +409,9 @@ export const getPrasadaStats = async (req: Request, res: Response, next: NextFun
       activeYear = yearDoc ? yearDoc.year : new Date().getFullYear().toString();
     }
 
+    // Automatically sync so all registered Kathe participants exist in Prasada deliveries
+    await syncPrasadaDeliveriesForYear(activeYear);
+
     // Overall stats
     const total = await PrasadaDelivery.countDocuments({ year: activeYear });
     const pending = await PrasadaDelivery.countDocuments({ year: activeYear, status: 'PENDING' });
@@ -363,6 +438,8 @@ export const getPrasadaStats = async (req: Request, res: Response, next: NextFun
       })
     );
 
+    const isDeliveryOpen = await getIsDeliveryOpen();
+
     res.status(200).json({
       status: 'success',
       stats: {
@@ -372,9 +449,11 @@ export const getPrasadaStats = async (req: Request, res: Response, next: NextFun
         outForDelivery,
         delivered,
         unableToDeliver,
-        progress: total > 0 ? Math.round((delivered / total) * 100) : 0
+        progress: total > 0 ? Math.round((delivered / total) * 100) : 0,
+        isDeliveryOpen
       },
-      areaBreakdown
+      areaBreakdown,
+      isDeliveryOpen
     });
   } catch (error) {
     next(error);

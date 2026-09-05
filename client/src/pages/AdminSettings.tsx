@@ -21,6 +21,7 @@ export const AdminSettings: React.FC = () => {
   const [bhajansSponsor, setBhajansSponsor] = useState('');
   const [samuvasadaSponsor, setSamuvasadaSponsor] = useState('');
   const [prasadaSponsor, setPrasadaSponsor] = useState('');
+  const [prasadaDeliveryOpen, setPrasadaDeliveryOpen] = useState(false);
 
   useEffect(() => {
     api.get('/settings').then(res => {
@@ -37,6 +38,7 @@ export const AdminSettings: React.FC = () => {
         setBhajansSponsor(s.bhajansSponsor || '');
         setSamuvasadaSponsor(s.samuvasadaSponsor || '');
         setPrasadaSponsor(s.prasadaSponsor || '');
+        setPrasadaDeliveryOpen(s.prasadaDeliveryOpen === true || s.prasadaDeliveryOpen === 'true');
       }
       setLoading(false);
     }).catch(err => {
@@ -64,7 +66,8 @@ export const AdminSettings: React.FC = () => {
         annasantharpaneSponsor,
         bhajansSponsor,
         samuvasadaSponsor,
-        prasadaSponsor
+        prasadaSponsor,
+        prasadaDeliveryOpen
       });
       if (res.data.status === 'success') {
         showToast('System settings updated successfully!');
@@ -149,6 +152,19 @@ export const AdminSettings: React.FC = () => {
                 >
                   <option value="SHOW_ALL">SHOW ALL (Expose phone & email to public)</option>
                   <option value="HIDE_CONTACT">HIDE CONTACT (Hide phone & email from public)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-xs block">Prasada Delivery Operations Status</label>
+                <select
+                  disabled={!isSuperAdmin}
+                  value={prasadaDeliveryOpen ? 'OPEN' : 'CLOSED'}
+                  onChange={(e) => setPrasadaDeliveryOpen(e.target.value === 'OPEN')}
+                  className="w-full bg-warm border border-warm-dark rounded-lg p-2.5 outline-none disabled:opacity-50 font-bold"
+                >
+                  <option value="OPEN">OPEN (ವಿತರಣೆ ಮುಕ್ತ - Admins can update status)</option>
+                  <option value="CLOSED">CLOSED (ವಿತರಣೆ ಮುಚ್ಚಿದೆ - Status updates locked)</option>
                 </select>
               </div>
             </div>

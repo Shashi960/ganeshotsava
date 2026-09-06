@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
-import { Flame, Lock, User, ArrowLeft, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Flame, Lock, User, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 
 export const AdminLogin: React.FC = () => {
   const { login } = useAuth();
@@ -108,21 +108,7 @@ export const AdminLogin: React.FC = () => {
           </button>
         </form>
 
-        {/* Credentials Helper Info */}
-        <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-3 text-xs text-amber-950 space-y-1.5">
-          <div className="font-extrabold flex items-center gap-1.5 text-amber-900">
-            <ShieldCheck className="h-4 w-4 text-accent-dark" />
-            <span>Super Admin Sign In Access</span>
-          </div>
-          <div className="text-[11px] space-y-1 text-charcoal-light">
-            <p>
-              Username: <code className="font-mono bg-white px-1.5 py-0.5 rounded border border-amber-200 text-charcoal font-bold">superadmin</code> or <code className="font-mono bg-white px-1.5 py-0.5 rounded border border-amber-200 text-charcoal">admin@ganeshotsava.com</code>
-            </p>
-            <p>
-              Password: <code className="font-mono bg-white px-1.5 py-0.5 rounded border border-amber-200 text-charcoal font-bold">admin123</code> (or <code className="font-mono bg-white px-1 py-0.5 rounded text-charcoal">AdminPassword123!</code>)
-            </p>
-          </div>
-        </div>
+
 
         <div className="text-center pt-1">
           <button

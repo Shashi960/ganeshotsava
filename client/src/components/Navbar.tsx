@@ -19,12 +19,12 @@ export const Navbar: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-50 bg-primary text-warm shadow-md border-b-2 border-accent">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between min-h-[4rem] py-1.5 sm:py-0 sm:h-16 gap-2">
           {/* Logo Title */}
-          <Link to="/" className="flex items-center gap-2">
-            <Flame className="h-6 w-6 text-accent animate-pulse" />
-            <span className="font-sanskrit text-lg sm:text-xl font-bold tracking-widest text-accent">
+          <Link to="/" className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 mr-1 sm:mr-4">
+            <Flame className="h-5 w-5 sm:h-6 sm:w-6 text-accent animate-pulse shrink-0" />
+            <span className="font-sanskrit text-xs sm:text-sm md:text-base lg:text-lg font-bold text-accent leading-tight line-clamp-2 sm:line-clamp-none">
               {t('festivalName')}
             </span>
           </Link>
@@ -43,20 +43,20 @@ export const Navbar: React.FC = () => {
           </nav>
 
           {/* Utilities (Language, Auth) */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             {/* Language Switcher Button */}
             <button
               onClick={() => setLanguage(language === 'en' ? 'kn' : 'en')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-accent/40 bg-primary-dark/50 text-accent font-semibold hover:bg-primary-dark hover:border-accent transition text-sm"
+              className="flex items-center gap-1 sm:gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full border border-accent/40 bg-primary-dark/50 text-accent font-semibold hover:bg-primary-dark hover:border-accent transition text-xs sm:text-sm"
               title="Switch Language"
             >
-              <Globe className="h-4 w-4" />
+              <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
               <span>{language === 'en' ? 'ಕನ್ನಡ' : 'English'}</span>
             </button>
 
             {/* Admin Buttons */}
             {isAuthenticated ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <Link
                   to="/admin"
                   className="hidden sm:flex items-center gap-1 text-sm bg-accent text-primary-dark px-3 py-1.5 rounded font-bold hover:bg-accent-light transition"
@@ -66,18 +66,18 @@ export const Navbar: React.FC = () => {
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="p-2 rounded text-warm hover:text-red-400 transition"
+                  className="p-1.5 sm:p-2 rounded text-warm hover:text-red-400 transition"
                   title="Logout"
                 >
-                  <LogOut className="h-5 w-5" />
+                  <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </div>
             ) : (
               <Link
                 to="/admin/login"
-                className="flex items-center gap-1 text-sm border border-accent text-accent px-3 py-1.5 rounded font-medium hover:bg-accent hover:text-primary-dark transition"
+                className="flex items-center gap-1 text-xs sm:text-sm border border-accent text-accent px-2.5 py-1 sm:px-3 sm:py-1.5 rounded font-medium hover:bg-accent hover:text-primary-dark transition"
               >
-                <User className="h-4 w-4" />
+                <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">{t('navAdmin')}</span>
               </Link>
             )}

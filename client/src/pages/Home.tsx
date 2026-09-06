@@ -113,7 +113,7 @@ export const Home: React.FC = () => {
             </span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-wider font-sanskrit text-accent leading-tight drop-shadow-md">
+          <h1 className="text-2xl sm:text-5xl md:text-6xl font-extrabold tracking-normal sm:tracking-wide font-sanskrit text-accent leading-tight drop-shadow-md">
             {t('festivalName')}
           </h1>
           <p className="text-lg sm:text-2xl font-medium max-w-2xl mx-auto text-warm-dark font-kannada leading-relaxed">

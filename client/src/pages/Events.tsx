@@ -450,14 +450,14 @@ export const Events: React.FC = () => {
                       {dayLabel} • {new Date(evt.date).toLocaleDateString()}
                     </span>
 
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-3">
                       <h3 className="text-lg sm:text-xl font-bold text-primary leading-snug">
                         {language === 'kn' ? evt.titleKannada : evt.title}
                       </h3>
                       {isAuthenticated && (
                         <button
                           onClick={() => handleOpenEditModal(evt)}
-                          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100/90 hover:bg-amber-200 text-amber-950 border border-amber-300 rounded-xl text-xs font-extrabold transition shadow-xs"
+                          className="self-start sm:self-auto shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100/90 hover:bg-amber-200 text-amber-950 border border-amber-300 rounded-xl text-xs font-extrabold transition shadow-xs"
                           title={language === 'kn' ? 'ಹೆಸರು ಮತ್ತು ಸೇವಾದಾರರ ವಿವರ ತಿದ್ದುಪಡಿ' : 'Edit Title & Sevadararu'}
                         >
                           <Edit2 className="h-3.5 w-3.5 text-accent-dark" />

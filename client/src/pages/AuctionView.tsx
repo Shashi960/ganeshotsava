@@ -60,7 +60,7 @@ export const AuctionView: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="flex justify-center border-b border-warm-dark pb-4 gap-2">
+      <div className="flex flex-wrap justify-center border-b border-warm-dark pb-4 gap-2">
         {['all', 'PAID', 'UNPAID', 'PARTIALLY_PAID'].map(st => (
           <button
             key={st}
@@ -79,38 +79,67 @@ export const AuctionView: React.FC = () => {
       {loading ? (
         <div className="py-12 text-center text-charcoal-light">Loading auction ledger...</div>
       ) : items.length > 0 ? (
-        <div className="bg-white rounded-xl border border-warm-dark overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-warm-dark/50 border-b border-warm-dark text-xs font-bold text-charcoal-light uppercase">
-                  <th className="p-4">Item Name / ಹರಾಜು ಸಾಮಾನು</th>
-                  <th className="p-4">Winner / ಕೊಳ್ಳುಗರು</th>
-                  <th className="p-4">Final Bid Amount</th>
-                  <th className="p-4">Payment Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-warm-dark text-sm">
-                {items.map((item) => (
-                  <tr key={item._id} className="hover:bg-warm-dark/10 transition">
-                    <td className="p-4 font-bold text-charcoal font-kannada">
+        <div className="space-y-4">
+          {/* Mobile Cards View */}
+          <div className="sm:hidden space-y-3">
+            {items.map((item) => (
+              <div key={item._id} className="bg-white rounded-xl border border-warm-dark p-4 shadow-sm space-y-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-bold text-charcoal text-base font-kannada">
                       {language === 'kn' ? item.itemNameKannada : item.itemName}
-                    </td>
-                    <td className="p-4 font-semibold text-charcoal-light">
-                      {item.buyer || 'Anonymous Devotee'}
-                    </td>
-                    <td className="p-4 font-extrabold text-primary">
-                      ₹{item.amount.toLocaleString()}
-                    </td>
-                    <td className="p-4">
-                      <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${getStatusStyle(item.paymentStatus)}`}>
-                        {item.paymentStatus}
-                      </span>
-                    </td>
+                    </h3>
+                    <p className="text-xs text-charcoal-light font-medium mt-0.5">
+                      {language === 'kn' ? 'ಕೊಳ್ಳುಗರು: ' : 'Winner: '}
+                      <span className="text-charcoal font-semibold">{item.buyer || 'Anonymous Devotee'}</span>
+                    </p>
+                  </div>
+                  <span className={`shrink-0 inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${getStatusStyle(item.paymentStatus)}`}>
+                    {item.paymentStatus}
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-warm-dark flex justify-between items-center text-xs">
+                  <span className="text-charcoal-light font-medium">{language === 'kn' ? 'ಅಂತಿಮ ಬಿಡ್ ಮೊತ್ತ:' : 'Final Bid:'}</span>
+                  <span className="font-extrabold text-primary text-base">₹{item.amount.toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden sm:block bg-white rounded-xl border border-warm-dark overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-warm-dark/50 border-b border-warm-dark text-xs font-bold text-charcoal-light uppercase">
+                    <th className="p-4">Item Name / ಹರಾಜು ಸಾಮಾನು</th>
+                    <th className="p-4">Winner / ಕೊಳ್ಳುಗರು</th>
+                    <th className="p-4">Final Bid Amount</th>
+                    <th className="p-4">Payment Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-warm-dark text-sm">
+                  {items.map((item) => (
+                    <tr key={item._id} className="hover:bg-warm-dark/10 transition">
+                      <td className="p-4 font-bold text-charcoal font-kannada">
+                        {language === 'kn' ? item.itemNameKannada : item.itemName}
+                      </td>
+                      <td className="p-4 font-semibold text-charcoal-light">
+                        {item.buyer || 'Anonymous Devotee'}
+                      </td>
+                      <td className="p-4 font-extrabold text-primary">
+                        ₹{item.amount.toLocaleString()}
+                      </td>
+                      <td className="p-4">
+                        <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${getStatusStyle(item.paymentStatus)}`}>
+                          {item.paymentStatus}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       ) : (

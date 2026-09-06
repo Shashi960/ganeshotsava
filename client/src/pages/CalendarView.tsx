@@ -122,9 +122,9 @@ export const CalendarView: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Desktop Calendar Grid */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-warm-dark p-6 shadow-sm space-y-4">
+        <div className="lg:col-span-2 bg-white rounded-xl border border-warm-dark p-3 sm:p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-charcoal uppercase tracking-wider">
+            <h2 className="text-base sm:text-lg font-bold text-charcoal uppercase tracking-wider">
               {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </h2>
             <div className="flex items-center gap-2">
@@ -137,7 +137,7 @@ export const CalendarView: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-7 text-center font-bold text-xs text-charcoal-light uppercase border-b border-warm-dark pb-2">
+          <div className="grid grid-cols-7 text-center font-bold text-[10px] sm:text-xs text-charcoal-light uppercase border-b border-warm-dark pb-2">
             <div>Sun</div>
             <div>Mon</div>
             <div>Tue</div>
@@ -152,7 +152,7 @@ export const CalendarView: React.FC = () => {
         </div>
 
         {/* Selected Day Events Column */}
-        <div className="bg-white rounded-xl border border-warm-dark p-6 shadow-sm space-y-4">
+        <div className="bg-white rounded-xl border border-warm-dark p-4 sm:p-6 shadow-sm space-y-4">
           <div className="border-b border-accent/20 pb-2">
             <h2 className="text-base font-bold text-primary tracking-wide">
               {selectedDate ? selectedDate.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : 'Select a Date'}

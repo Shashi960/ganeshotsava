@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
@@ -55,7 +55,8 @@ export const KatheView: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [bookNo, setBookNo] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [lastRegisteredName, setLastRegisteredName] = useState<string | null>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Search & Filter State
   const [search, setSearch] = useState('');
@@ -236,17 +237,41 @@ export const KatheView: React.FC = () => {
 
       const res = await api.post('/kathe', payload);
       if (res.data.status === 'success') {
-        setSuccess(true);
-        showToast(language === 'kn' ? 'ನೋಂದಣಿ ಯಶಸ್ವಿಯಾಗಿ ಸಲ್ಲಿಕೆಯಾಗಿದೆ!' : 'Registration submitted successfully!', 'success');
-        // Clear form
+        const registeredDevotee = name.trim();
+        setLastRegisteredName(registeredDevotee);
+        showToast(
+          language === 'kn'
+            ? `"${registeredDevotee}" ಅವರ ನೋಂದಣಿ ಯಶಸ್ವಿಯಾಗಿದೆ!`
+            : `"${registeredDevotee}" registered successfully!`,
+          'success'
+        );
+
+        // Immediately add to local list without any reload
+        if (res.data.participant) {
+          const newParticipant = res.data.participant;
+          setParticipants(prev => {
+            const exists = prev.some(item => item._id === newParticipant._id);
+            if (exists) return prev;
+            return [newParticipant, ...prev];
+          });
+        }
+
+        // Clear all text fields so form is immediately blank and ready for the next entry
         setName('');
         setHomeName('');
         setAddress('');
         setCustomPlace('');
         setPhone('');
         setBookNo('');
-        fetchParticipants(); // Refresh list immediately
-        fetchPlaces(); // Refresh places in case a new place was added
+
+        // Refresh list and places in background
+        fetchParticipants();
+        fetchPlaces();
+
+        // Automatically focus name input for fast consecutive entry
+        setTimeout(() => {
+          nameInputRef.current?.focus();
+        }, 50);
       }
     } catch (error) {
       console.error(error);
@@ -410,22 +435,6 @@ export const KatheView: React.FC = () => {
                 Go to Login Panel
               </Link>
             </div>
-          ) : success ? (
-            <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-6 rounded-lg text-center space-y-3">
-              <div className="h-12 w-12 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto shadow">
-                <Check className="h-6 w-6" />
-              </div>
-              <h3 className="font-bold text-lg">Registration Submitted!</h3>
-              <p className="text-sm">
-                Thank you for registering. The committee will perform the Vrata Sankalpa under your family name. Prasada will be sent to your address.
-              </p>
-              <button
-                onClick={() => setSuccess(false)}
-                className="mt-2 text-xs font-bold text-emerald-700 hover:underline"
-              >
-                Register another family
-              </button>
-            </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1">
@@ -433,6 +442,7 @@ export const KatheView: React.FC = () => {
                   {language === 'kn' ? 'ಭಕ್ತರ ಹೆಸರು (Name)' : 'Devotee Name'} <span className="text-rose-500">*</span>
                 </label>
                 <input
+                  ref={nameInputRef}
                   type="text"
                   required
                   placeholder={language === 'kn' ? 'ಭಕ್ತರ ಹೆಸರು ನಮೂದಿಸಿ / Enter full name' : 'Enter devotee name'}
@@ -536,13 +546,40 @@ export const KatheView: React.FC = () => {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-primary text-warm font-bold py-2.5 rounded-lg hover:bg-primary-light transition flex items-center justify-center gap-2"
+                className="w-full bg-primary text-warm font-bold py-2.5 rounded-lg hover:bg-primary-light transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
               >
                 {submitting 
                   ? (language === 'kn' ? 'ಸಲ್ಲಿಸಲಾಗುತ್ತಿದೆ...' : 'Submitting...') 
                   : (language === 'kn' ? 'ಭಕ್ತರ ಹೆಸರು ನೋಂದಾಯಿಸಿ' : 'Register Devotee')}
                 <Send className="h-4 w-4" />
               </button>
+
+              {/* Inline Success Notice (Below Submit Button, Form Stays Visible) */}
+              {lastRegisteredName && (
+                <div className="bg-emerald-50 border-2 border-emerald-400 text-emerald-950 p-3.5 rounded-xl flex items-start justify-between gap-3 shadow-xs animate-fadeIn">
+                  <div className="flex items-start gap-2.5 text-xs">
+                    <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-extrabold text-emerald-900 block text-sm">
+                        {language === 'kn' ? 'ನೋಂದಣಿ ಯಶಸ್ವಿಯಾಗಿದೆ!' : 'Registration Successful!'}
+                      </span>
+                      <p className="text-emerald-800 leading-relaxed mt-0.5">
+                        {language === 'kn'
+                          ? `"${lastRegisteredName}" ಅವರ ಹೆಸರು ಪಟ್ಟಿಗೆ ಸೇರ್ಪಡೆಯಾಗಿದೆ. ಮುಂದಿನ ಭಕ್ತರ ಹೆಸರು ನಮೂದಿಸಬಹುದು.`
+                          : `Devotee "${lastRegisteredName}" has been added to the list. You can enter the next devotee now.`}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setLastRegisteredName(null)}
+                    className="text-emerald-700 hover:text-emerald-950 text-xs font-bold px-1.5 py-0.5 rounded hover:bg-emerald-100 transition"
+                    title="Dismiss"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
             </form>
           )}
         </div>

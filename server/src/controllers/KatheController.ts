@@ -192,6 +192,8 @@ export const createKatheParticipant = async (req: Request, res: Response, next: 
       { upsert: true, new: true }
     );
 
+    await participant.populate('place');
+
     res.status(201).json({ status: 'success', participant });
   } catch (error) {
     next(error);

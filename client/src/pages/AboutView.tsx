@@ -75,7 +75,7 @@ export const AboutView: React.FC = () => {
 
         <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 space-y-4">
           <h3 className="font-bold text-primary text-lg flex items-center gap-1.5 border-b border-primary/15 pb-2">
-            <Sparkles className="h-5 w-5 text-accent-dark" /> Sponsor Highlights
+            <Sparkles className="h-5 w-5 text-accent-dark" /> Sponsor Highlights..
           </h3>
 
           <div className="space-y-3 font-kannada text-xs sm:text-sm text-charcoal">
@@ -86,12 +86,12 @@ export const AboutView: React.FC = () => {
 
             <div className="space-y-0.5">
               <span className="text-[10px] font-bold text-secondary uppercase block">Annasantharpane Sponsor (ಅನ್ನ ಸಂತರ್ಪಣಾ ಸೇವಾದಾರರು)</span>
-              <p className="font-bold text-charcoal-dark leading-snug">{settings.annasantharpaneSponsor || "ರಾಜೀಶ ನಾಗೇಶ ನಾಯ್ಕ ಹಾಗೂ ಕುಟುಂಬದವರು, ನಾಜಗಾರ (ಪ್ರಭಾತನಗರ, ಹೊನ್ನಾವರ)"}</p>
+              <p className="font-bold text-charcoal-dark leading-snug">{settings.annasantharpaneSponsor || "ರಾಜೇಶ್ ನಾಗೇಶ ನಾಯ್ಕ ಹಾಗೂ ಕುಟುಂಬದವರು, ನಾಜಗಾರ (ಪ್ರಭಾತನಗರ, ಹೊನ್ನಾವರ)"}</p>
             </div>
 
             <div className="space-y-0.5">
               <span className="text-[10px] font-bold text-secondary uppercase block">Bhajans Sponsor (ಭಜನಾ ಕಾರ್ಯಕ್ರಮದ ಪ್ರಾಯೋಜಕರು)</span>
-              <p className="font-bold text-charcoal-dark leading-snug">{settings.bhajansSponsor || "ತಿಮ್ಮಪ್ಪ ಆಚಾರ್ಯ ಹಾಗೂ ಮಾರುತಿ ಎಂ. ಆಚಾರ್ಯ, ಸಾಲೇಬೈಲ್"}</p>
+              <p className="font-bold text-charcoal-dark leading-snug">{settings.bhajansSponsor || "ತಿಮ್ಮಪ್ಪ ಆಚಾರ್ಯ, ಮಾರುತಿ ಎಂ. ಆಚಾರ್ಯ, ಸಾಲೇಬೈಲ್, ಸತೀಶ ಕೊಡಿಯಾ ಹಾಗೂ ಅಭಿಷೇಕ ನಾಯ್ಕ"}</p>
             </div>
 
             <div className="space-y-0.5">

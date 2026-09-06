@@ -43,10 +43,10 @@ export const Home: React.FC = () => {
         const sortedDates = res.data.events
           .map((e: any) => new Date(e.date))
           .sort((a: any, b: any) => a.getTime() - b.getTime());
-        
+
         const startDate = new Date(sortedDates[0]);
         startDate.setHours(0, 0, 0, 0);
-        
+
         const endDate = new Date(sortedDates[sortedDates.length - 1]);
         endDate.setHours(23, 59, 59, 999);
 
@@ -69,7 +69,7 @@ export const Home: React.FC = () => {
       console.error('Failed to calculate event dates:', err);
       setCountdownText(t('countdownEnded'));
     });
-    
+
     // Fetch today's schedule
     const todayStr = new Date().toISOString().split('T')[0];
     api.get(`/events/today?date=${todayStr}`).then(res => {
@@ -276,7 +276,7 @@ export const Home: React.FC = () => {
             <h3 className="font-bold text-primary text-base flex items-center gap-1.5 border-b border-primary/15 pb-2">
               <Sparkles className="h-5 w-5 text-accent-dark animate-pulse" /> Sponsor Highlights
             </h3>
-            
+
             <div className="space-y-3 font-kannada text-xs sm:text-sm text-charcoal">
               <div className="space-y-0.5">
                 <span className="text-[10px] font-bold text-secondary uppercase block">Idol Sponsor (ಗಣಪತಿ ಮೂರ್ತಿ ಸೇವಾದಾರರು)</span>
@@ -285,22 +285,22 @@ export const Home: React.FC = () => {
 
               <div className="space-y-0.5">
                 <span className="text-[10px] font-bold text-secondary uppercase block">Annasantharpane Sponsor (ಅನ್ನ ಸಂತರ್ಪಣಾ ಸೇವಾದಾರರು)</span>
-                <p className="font-bold text-charcoal-dark leading-snug">{settings.annasantharpaneSponsor || "ರಾಜೀಶ ನಾಗೇಶ ನಾಯ್ಕ ಹಾಗೂ ಕುಟುಂಬದವರು, ನಾಜಗಾರ (ಪ್ರಭಾತನಗರ, ಹೊನ್ನಾವರ)"}</p>
+                <p className="font-bold text-charcoal-dark leading-snug">{settings.annasantharpaneSponsor || "ರಾಜೇಶ್ ನಾಗೇಶ ನಾಯ್ಕ ಹಾಗೂ ಕುಟುಂಬದವರು, ನಾಜಗಾರ (ಪ್ರಭಾತನಗರ, ಹೊನ್ನಾವರ)"}</p>
               </div>
 
               <div className="space-y-0.5">
                 <span className="text-[10px] font-bold text-secondary uppercase block">Bhajans Sponsor (ಭಜನಾ ಕಾರ್ಯಕ್ರಮದ ಪ್ರಾಯೋಜಕರು)</span>
-                <p className="font-bold text-charcoal-dark leading-snug">{settings.bhajansSponsor || "ತಿಮ್ಮಪ್ಪ ಆಚಾರ್ಯ ಹಾಗೂ ಮಾಯಿತಿ ಆಚಾರ್ಯ, ಸಾಲೇಬೈಲ್"}</p>
+                <p className="font-bold text-charcoal-dark leading-snug">{settings.bhajansSponsor || "ತಿಮ್ಮಪ್ಪ ಆಚಾರ್ಯ,ಮಾರುತಿ ಎಂ. ಆಚಾರ್ಯ, ಸಾಲೇಬೈಲ್,ಸತೀಶ ಕೊಡಿಯಾ ಹಾಗೂ ಅಭಿಷೇಕ ನಾಯ್ಕ"}</p>
               </div>
 
               <div className="space-y-0.5">
                 <span className="text-[10px] font-bold text-secondary uppercase block">Samuvasada Sponsor (ಸಮುವಸದ ಪ್ರಾಯೋಜಕರು)</span>
-                <p className="font-bold text-charcoal-dark leading-snug">{settings.samuvasadaSponsor || "ಅಕ್ಷಯ್ಯ ಆಚಾರ್ಯ ಸಾಲೇಬೈಲ್ ಹಾಗೂ __________________"}</p>
+                <p className="font-bold text-charcoal-dark leading-snug">{settings.samuvasadaSponsor || "ಅಣ್ಣಪ್ಪಯ್ಯ ಆಚಾರ್ಯ ಸಾಲೇಬೈಲ್ ಹಾಗೂ __________________"}</p>
               </div>
 
               <div className="space-y-0.5">
                 <span className="text-[10px] font-bold text-secondary uppercase block">Vrata Prasada Sponsor (ಸತ್ಯ ಗಣಪತಿ ವ್ರತದ ಪ್ರಸಾದ ಹಾಗೂ ಪೂಜಾ ಸೇವಾದಾರರು)</span>
-                <p className="font-bold text-charcoal-dark leading-snug">{settings.prasadaSponsor || "ಗಣಪತಿ ಆರ್. ನಾಯ್ಕ, ನಾಗೇಶ್ವರ ಕ್ರಾಸ್"}</p>
+                <p className="font-bold text-charcoal-dark leading-snug">{settings.prasadaSponsor || "ಗಣಪತಿ ಆರ್. ನಾಯ್ಕ, ನಾಜಗಾರ ಕ್ರಾಸ್"}</p>
               </div>
             </div>
           </div>
@@ -308,7 +308,7 @@ export const Home: React.FC = () => {
           <h2 className="text-xl font-bold text-primary border-b border-accent/30 pb-3">
             QUICK ACCESS
           </h2>
-          
+
           <div className="grid grid-cols-1 gap-4">
             <Link
               to="/kathe"

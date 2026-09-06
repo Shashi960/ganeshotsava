@@ -12,11 +12,9 @@ interface PhotoItem {
 
 interface VideoItem {
   _id: string;
-  youtubeUrl: string;
   youtubeVideoId: string;
   title: string;
-  description?: string;
-  thumbnail?: string;
+  year?: string;
 }
 
 export const MediaView: React.FC = () => {
@@ -26,10 +24,11 @@ export const MediaView: React.FC = () => {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeLightbox, setActiveLightbox] = useState<string | null>(null);
-  const [activeVideoEmbed, setActiveVideoEmbed] = useState<string | null>(null);
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
+    setPlayingVideoId(null);
     if (activeTab === 'photos') {
       api.get('/gallery').then(res => {
         if (res.data.status === 'success') setPhotos(res.data.photos);
@@ -56,7 +55,9 @@ export const MediaView: React.FC = () => {
           {activeTab === 'photos' ? t('navGallery') : t('navVideos')}
         </h1>
         <p className="text-charcoal-light max-w-lg mx-auto text-sm sm:text-base">
-          Relive Ganeshotsava celebrations through community photos and YouTube videos.
+          {language === 'kn'
+            ? 'ನಾಜಗಾರ ಗಣೇಶೋತ್ಸವದ ಸುಂದರ ಕ್ಷಣಗಳು ಹಾಗೂ ವೀಡಿಯೋಗಳು.'
+            : 'Relive Ganeshotsava celebrations through community photos and YouTube videos.'}
         </p>
       </div>
 
@@ -71,7 +72,7 @@ export const MediaView: React.FC = () => {
           }`}
         >
           <Image className="h-4 w-4" />
-          <span>Photos</span>
+          <span>{language === 'kn' ? 'ಚಿತ್ರಗಳು' : 'Photos'}</span>
         </button>
 
         <button
@@ -83,13 +84,15 @@ export const MediaView: React.FC = () => {
           }`}
         >
           <VideoIcon className="h-4 w-4" />
-          <span>Videos</span>
+          <span>{language === 'kn' ? 'ವೀಡಿಯೋಗಳು' : 'Videos'}</span>
         </button>
       </div>
 
       {/* Gallery Render */}
       {loading ? (
-        <div className="py-12 text-center text-charcoal-light font-semibold">Loading gallery assets...</div>
+        <div className="py-12 text-center text-charcoal-light font-semibold">
+          {language === 'kn' ? 'ಮಾಹಿತಿ ಲೋಡ್ ಆಗುತ್ತಿದೆ...' : 'Loading gallery assets...'}
+        </div>
       ) : activeTab === 'photos' ? (
         photos.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -110,42 +113,67 @@ export const MediaView: React.FC = () => {
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-warm-dark p-12 text-center text-charcoal-light font-semibold">
-            No photos uploaded yet.
+            {language === 'kn' ? 'ಯಾವುದೇ ಚಿತ್ರಗಳು ಲಭ್ಯವಿಲ್ಲ.' : 'No photos uploaded yet.'}
           </div>
         )
       ) : (
         videos.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {videos.map((vid) => (
-              <div
-                key={vid._id}
-                onClick={() => setActiveVideoEmbed(vid.youtubeVideoId)}
-                className="bg-white rounded-xl border border-warm-dark overflow-hidden shadow-sm hover:shadow cursor-pointer relative group flex flex-col"
-              >
-                <div className="relative aspect-video overflow-hidden">
-                  <img src={getImageUrl(vid.thumbnail)} alt={vid.title} className="h-full w-full object-cover group-hover:scale-105 transition duration-300" />
-                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/45 transition">
-                    <div className="h-12 w-12 bg-accent text-primary-dark rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition">
-                      <Play className="h-6 w-6 fill-current ml-0.5" />
-                    </div>
+            {videos.map((vid) => {
+              const isPlaying = playingVideoId === vid._id;
+              const thumbnailSrc = `https://img.youtube.com/vi/${vid.youtubeVideoId}/hqdefault.jpg`;
+
+              return (
+                <div
+                  key={vid._id}
+                  className="bg-white rounded-2xl border border-warm-dark overflow-hidden shadow-sm hover:shadow-md transition flex flex-col"
+                >
+                  {/* 16:9 Click-to-Play YouTube Player */}
+                  <div className="relative aspect-video w-full bg-black overflow-hidden">
+                    {isPlaying ? (
+                      <iframe
+                        src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(vid.youtubeVideoId)}?autoplay=1&rel=0&modestbranding=1`}
+                        title={vid.title}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        className="w-full h-full border-0 absolute inset-0"
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setPlayingVideoId(vid._id)}
+                        className="w-full h-full relative block text-left group cursor-pointer focus:outline-none"
+                        aria-label={`Play ${vid.title}`}
+                      >
+                        <img
+                          src={thumbnailSrc}
+                          alt={vid.title}
+                          loading="lazy"
+                          className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                        />
+                        {/* Hover Overlay */}
+                        <div className="absolute inset-0 bg-black/25 group-hover:bg-black/10 transition duration-300" />
+                        {/* Play Button Overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-14 h-14 bg-red-600 group-hover:bg-red-700 text-white rounded-2xl flex items-center justify-center shadow-xl transform group-hover:scale-110 transition duration-200">
+                            <Play className="w-7 h-7 fill-current ml-1" />
+                          </div>
+                        </div>
+                      </button>
+                    )}
+                  </div>
+                  <div className="p-4 flex-1 space-y-1.5">
+                    <h3 className="font-bold text-charcoal text-base leading-snug">
+                      {vid.title}
+                    </h3>
                   </div>
                 </div>
-                <div className="p-4 flex-1 space-y-1">
-                  <h3 className="font-bold text-charcoal text-base line-clamp-1 group-hover:text-primary transition">
-                    {vid.title}
-                  </h3>
-                  {vid.description && (
-                    <p className="text-xs text-charcoal-light line-clamp-2 leading-relaxed">
-                      {vid.description}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-warm-dark p-12 text-center text-charcoal-light font-semibold">
-            No videos uploaded yet.
+            {language === 'kn' ? 'ಯಾವುದೇ ವಿಡಿಯೋಗಳು ಲಭ್ಯವಿಲ್ಲ.' : 'No videos uploaded yet.'}
           </div>
         )
       )}
@@ -163,27 +191,6 @@ export const MediaView: React.FC = () => {
         </div>
       )}
 
-      {/* Video Watch Overlay */}
-      {activeVideoEmbed && (
-        <div className="fixed inset-0 z-[10000] bg-black/90 flex items-center justify-center p-4">
-          <div className="relative w-full max-w-3xl aspect-video bg-black rounded shadow-2xl overflow-hidden">
-            <button
-              onClick={() => setActiveVideoEmbed(null)}
-              className="absolute -top-12 sm:top-2 right-2 text-white hover:text-accent transition z-[10001] bg-black/50 p-1.5 rounded-full"
-            >
-              <X className="h-6 w-6" />
-            </button>
-            <iframe
-              src={`https://www.youtube.com/embed/${activeVideoEmbed}?autoplay=1`}
-              title="YouTube video player"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              className="h-full w-full"
-            ></iframe>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

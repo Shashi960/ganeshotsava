@@ -244,26 +244,60 @@ export const getVideos = async (req: Request, res: Response, next: NextFunction)
   }
 };
 
-export const createVideo = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  const { youtubeUrl, title, description, year, event } = req.body;
-  try {
-    // Extract video ID from youtubeUrl
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = youtubeUrl.match(regExp);
-    const videoId = (match && match[2].length === 11) ? match[2] : null;
+// Helper to extract and sanitize a YouTube video ID from various YouTube URL formats
+export const extractYouTubeVideoId = (inputUrl: string): string | null => {
+  if (!inputUrl || typeof inputUrl !== 'string') return null;
+  const trimmed = inputUrl.trim();
 
-    if (!videoId) {
-      return next(new AppError('Invalid YouTube URL. Please check the URL.', 400));
+  // If direct 11-character video ID
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  // Common YouTube URL regex patterns
+  const patterns = [
+    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/i,
+    /youtube\.com\/live\/([a-zA-Z0-9_-]{11})/i,
+    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/i,
+    /youtu\.be\/([a-zA-Z0-9_-]{11})/i,
+    /(?:youtube\.com\/(?:watch\?.*v=|v\/))([a-zA-Z0-9_-]{11})/i,
+    /[?&]v=([a-zA-Z0-9_-]{11})/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = trimmed.match(pattern);
+    if (match && match[1] && /^[a-zA-Z0-9_-]{11}$/.test(match[1])) {
+      return match[1];
+    }
+  }
+
+  return null;
+};
+
+export const createVideo = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const { youtubeUrl, youtubeVideoId, title, year } = req.body;
+  try {
+    const rawInput = youtubeVideoId || youtubeUrl;
+    if (!rawInput || !title) {
+      return next(new AppError('YouTube link or video ID and Title are required.', 400));
     }
 
+    // Extract & sanitize video ID from youtubeUrl or direct ID
+    const videoId = extractYouTubeVideoId(rawInput);
+
+    if (!videoId) {
+      return next(new AppError('Invalid YouTube URL. Please provide a valid YouTube link (watch, youtu.be, shorts) or 11-character Video ID.', 400));
+    }
+
+    const cleanTitle = title.trim();
+    const cleanYear = year ? year.toString().trim() : '2026';
+
+    // Store ONLY genuinely required fields: youtubeVideoId, title, year
+    // Do NOT store redundant youtubeUrl, thumbnail, or metadata
     const video = await Video.create({
-      youtubeUrl,
       youtubeVideoId: videoId,
-      title,
-      description,
-      year,
-      event: event || undefined,
-      thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+      title: cleanTitle,
+      year: cleanYear
     });
 
     await logActivity(req.user?.email || 'ADMIN', req.user?.role || 'ADMIN', 'ADD_VIDEO', 'Video', video._id.toString(), null, video, req);

@@ -20,7 +20,7 @@ export const translations: Translations = {
   },
   festivalName: {
     en: 'Najagara Ganeshotsava',
-    kn: 'ನಾಜಗಾರ ಗಣೇಶೋತ್ಸವ'
+    kn: 'ಸಾರ್ವಜನಿಕ ಶ್ರೀ ಗಣೇಶೋತ್ಸವ ಸಮಿತಿ, ಕೆಳಗಿನೂರು, ನಾಜಗಾರ ಕ್ರಾಸ್'
   },
   festivalGreeting: {
     en: 'Happy Ganesh Chaturthi & Ganeshotsava!',

@@ -42,8 +42,10 @@ export const KatheView: React.FC = () => {
   const [loadingList, setLoadingList] = useState(true);
   
   // Dynamic Vrata states based on scheduled events
-  const [vrataDateStr, setVrataDateStr] = useState('16-09-2026 Wednesday (ಬುಧವಾರ ಬೆಳಿಗ್ಗೆ)');
-  const [editionText, setEditionText] = useState('35th');
+  const [vrataDateStr, setVrataDateStr] = useState(
+    language === 'kn' ? 'ಸೆಪ್ಟೆಂಬರ್ 16, 2026 (ಬುಧವಾರ)' : 'September 16, 2026 (Wednesday)'
+  );
+  const [editionText, setEditionText] = useState(language === 'kn' ? '35ನೇ' : '35th');
   const [currentYearVal, setCurrentYearVal] = useState('2026');
 
   // Registration Form State
@@ -97,7 +99,7 @@ export const KatheView: React.FC = () => {
     // Fetch Vrata event dynamically to map dates/editions
     api.get('/events').then(res => {
       if (res.data.status === 'success') {
-        const vrataEvt = res.data.events.find((e: any) => e.title.includes('Vrata') || e.titleKannada.includes('ವ್ರತ'));
+        const vrataEvt = res.data.events.find((e: any) => (e.title && e.title.includes('Vrata')) || (e.titleKannada && e.titleKannada.includes('ವ್ರತ')));
         if (vrataEvt) {
           const dObj = new Date(vrataEvt.date);
           const knDate = dObj.toLocaleDateString(language === 'kn' ? 'kn-IN' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -107,10 +109,17 @@ export const KatheView: React.FC = () => {
           const yearNum = dObj.getFullYear();
           setCurrentYearVal(yearNum.toString());
           // 35th Ganeshotsava is 2026. 2026 - 1991 = 35.
-          setEditionText(`${yearNum - 1991}th`);
+          setEditionText(language === 'kn' ? `${yearNum - 1991}ನೇ` : `${yearNum - 1991}th`);
+        } else {
+          setVrataDateStr(language === 'kn' ? 'ಸೆಪ್ಟೆಂಬರ್ 16, 2026 (ಬುಧವಾರ)' : 'September 16, 2026 (Wednesday)');
+          setEditionText(language === 'kn' ? '35ನೇ' : '35th');
         }
       }
-    }).catch(err => console.error(err));
+    }).catch(err => {
+      console.error(err);
+      setVrataDateStr(language === 'kn' ? 'ಸೆಪ್ಟೆಂಬರ್ 16, 2026 (ಬುಧವಾರ)' : 'September 16, 2026 (Wednesday)');
+      setEditionText(language === 'kn' ? '35ನೇ' : '35th');
+    });
 
     fetchParticipants();
   }, [language]);
@@ -351,7 +360,9 @@ export const KatheView: React.FC = () => {
           {t('navKathe')}
         </h1>
         <p className="text-charcoal-light max-w-lg mx-auto text-sm sm:text-base">
-          Sri Satya Ganapati Vrata Mass Sankalpa registration and public directory.
+          {language === 'kn'
+            ? 'ಶ್ರೀ ಸತ್ಯಗಣಪತಿ ವ್ರತ ಸಾಮೂಹಿಕ ಸಂಕಲ್ಪ ನೋಂದಣಿ ಹಾಗೂ ಭಕ್ತರ ವಿವರ.'
+            : 'Sri Satya Ganapati Vrata Mass Sankalpa registration and public directory.'}
         </p>
       </div>
 
@@ -361,46 +372,77 @@ export const KatheView: React.FC = () => {
           <div className="flex items-center gap-3 border-b border-accent/20 pb-4">
             <BookOpen className="h-6 w-6 text-primary" />
             <h2 className="text-xl font-bold text-charcoal tracking-wide">
-              Vrata Program Information
+              {language === 'kn' ? 'ವ್ರತ ಕಾರ್ಯಕ್ರಮದ ಮಾಹಿತಿ' : 'Vrata Program Information'}
             </h2>
           </div>
 
           <div className="space-y-4 text-charcoal-light leading-relaxed text-sm sm:text-base font-kannada">
             <div className="bg-amber-50/50 p-4 border border-accent/30 rounded-lg space-y-1">
-              <span className="text-xs font-bold text-secondary block uppercase">DATE & TIME</span>
+              <span className="text-xs font-bold text-secondary block uppercase">
+                {language === 'kn' ? 'ದಿನಾಂಕ ಮತ್ತು ಸಮಯ' : 'DATE & TIME'}
+              </span>
               <span className="font-bold text-primary text-base">{vrataDateStr}</span>
             </div>
 
             <p>
-              On the auspicious occasion of the {editionText} Ganeshotsava, we are conducting the **Mass Sri Satya Ganapati Vrata (ಸಾಮೂಹಿಕ ಶ್ರೀ ಸತ್ಯಗಣಪತಿ ವ್ರತ)** at the Sri Ganapati Sannidhi, for universal peace and community welfare.
+              {language === 'kn' ? (
+                <>
+                  {editionText} ವರ್ಷದ ಶ್ರೀ ಗಣೇಶೋತ್ಸವದ ಶುಭ ಸಂದರ್ಭದಲ್ಲಿ, ಸರ್ವರ ಸುಖ-ಶಾಂತಿ, ಸಮೃದ್ಧಿ ಹಾಗೂ ಲೋಕಕಲ್ಯಾಣಕ್ಕಾಗಿ ಶ್ರೀ ಗಣಪತಿ ಸನ್ನಿಧಿಯಲ್ಲಿ{' '}
+                  <strong className="text-charcoal font-bold">ಸಾಮೂಹಿಕ ಶ್ರೀ ಸತ್ಯಗಣಪತಿ ವ್ರತ</strong>ವನ್ನು ಅತ್ಯಂತ ಶ್ರದ್ಧಾ-ಭಕ್ತಿಗಳಿಂದ ಹಮ್ಮಿಕೊಳ್ಳಲಾಗಿದೆ.
+                </>
+              ) : (
+                <>
+                  On the auspicious occasion of the {editionText} Ganeshotsava, we are conducting the{' '}
+                  <strong className="text-charcoal font-bold">Mass Sri Satya Ganapati Vrata (ಸಾಮೂಹಿಕ ಶ್ರೀ ಸತ್ಯಗಣಪತಿ ವ್ರತ)</strong> at the Sri Ganapati Sannidhi, for universal peace and community welfare.
+                </>
+              )}
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="border border-warm-dark p-4 rounded-lg flex items-start gap-3">
+              <div className="border border-warm-dark p-4 rounded-lg flex items-start gap-3 bg-warm/30">
                 <Coins className="h-5 w-5 text-accent-dark flex-shrink-0 mt-0.5" />
                 <div>
-                  <span className="text-xs font-bold text-charcoal block uppercase">Vrata Contribution</span>
-                  <span className="font-bold text-charcoal text-base">Rs. 150/-</span>
-                  <p className="text-xs text-charcoal-light mt-0.5">Includes Vrata Sankalpa in your name & home-delivered Prasada.</p>
+                  <span className="text-xs font-bold text-charcoal block uppercase">
+                    {language === 'kn' ? 'ವ್ರತದ ಕಾಣಿಕೆ / ವಂತಿಗೆ' : 'Vrata Contribution'}
+                  </span>
+                  <span className="font-bold text-primary text-base">
+                    {language === 'kn' ? 'ರೂ. 150/-' : 'Rs. 150/-'}
+                  </span>
+                  <p className="text-xs text-charcoal-light mt-0.5">
+                    {language === 'kn'
+                      ? 'ನಿಮ್ಮ ಹೆಸರಿನಲ್ಲಿ ವ್ರತ ಸಂಕಲ್ಪ ಹಾಗೂ ಮನೆಗೆ ತಲುಪಿಸುವ ಪ್ರಸಾದ ಒಳಗೊಂಡಿದೆ.'
+                      : 'Includes Vrata Sankalpa in your name & home-delivered Prasada.'}
+                  </p>
                 </div>
               </div>
 
-              <div className="border border-warm-dark p-4 rounded-lg flex items-start gap-3">
+              <div className="border border-warm-dark p-4 rounded-lg flex items-start gap-3 bg-warm/30">
                 <Coins className="h-5 w-5 text-accent-dark flex-shrink-0 mt-0.5" />
                 <div>
-                  <span className="text-xs font-bold text-charcoal block uppercase">Seva Pooja Receipt</span>
-                  <span className="font-bold text-charcoal text-base">Rs. 50/-</span>
-                  <p className="text-xs text-charcoal-light mt-0.5">Separate receipt issued for additional offerings.</p>
+                  <span className="text-xs font-bold text-charcoal block uppercase">
+                    {language === 'kn' ? 'ಸೇವಾ ಪೂಜಾ ರಸೀದಿ' : 'Seva Pooja Receipt'}
+                  </span>
+                  <span className="font-bold text-primary text-base">
+                    {language === 'kn' ? 'ರೂ. 50/-' : 'Rs. 50/-'}
+                  </span>
+                  <p className="text-xs text-charcoal-light mt-0.5">
+                    {language === 'kn'
+                      ? 'ಹೆಚ್ಚುವರಿ ಸೇವೆ ಮತ್ತು ಕಾಣಿಕೆಗಳಿಗೆ ಪ್ರತ್ಯೇಕ ರಸೀದಿ ನೀಡಲಾಗುವುದು.'
+                      : 'Separate receipt issued for additional offerings.'}
+                  </p>
                 </div>
               </div>
             </div>
 
             <div className="bg-primary/5 p-4 rounded-lg border border-primary/10 space-y-2">
               <h3 className="font-bold text-primary text-sm flex items-center gap-1.5">
-                <Sparkles className="h-4 w-4" /> Sponsor of Vrata Prasada & Items
+                <Sparkles className="h-4 w-4 text-accent-dark" />
+                <span>{language === 'kn' ? 'ವ್ರತದ ಪ್ರಸಾದ ಹಾಗೂ ಸಾಮಗ್ರಿಗಳ ಸೇವಾಕರ್ತರು' : 'Sponsor of Vrata Prasada & Items'}</span>
               </h3>
-              <p className="text-xs italic text-primary-dark">
-                Shri Ganapati R. Nayak, Najagara Cross (ಗಣಪತಿ ಆರ್. ನಾಯ್ಕ, ನಾಜಗಾರ ಕ್ರಾಸ್)
+              <p className="text-xs italic text-primary-dark font-medium">
+                {language === 'kn'
+                  ? 'ಶ್ರೀ ಗಣಪತಿ ಆರ್. ನಾಯ್ಕ, ನಾಜಗಾರ ಕ್ರಾಸ್'
+                  : 'Shri Ganapati R. Nayak, Najagara Cross (ಗಣಪತಿ ಆರ್. ನಾಯ್ಕ, ನಾಜಗಾರ ಕ್ರಾಸ್)'}
               </p>
             </div>
           </div>
@@ -410,10 +452,12 @@ export const KatheView: React.FC = () => {
         <div className="bg-white rounded-xl border border-warm-dark p-6 sm:p-8 shadow-sm space-y-6">
           <div className="border-b border-warm-dark pb-4">
             <h2 className="text-xl font-bold text-charcoal tracking-wide">
-              Vrata Registration
+              {language === 'kn' ? 'ವ್ರತ ನೋಂದಣಿ' : 'Vrata Registration'}
             </h2>
             <p className="text-xs text-charcoal-light mt-1">
-              Register devotee details for the upcoming Sri Satya Ganapati Vrata.
+              {language === 'kn'
+                ? 'ಮುಂದಿನ ಶ್ರೀ ಸತ್ಯಗಣಪತಿ ವ್ರತಕ್ಕಾಗಿ ಭಕ್ತರ ವಿವರಗಳನ್ನು ನೋಂದಾಯಿಸಿ.'
+                : 'Register devotee details for the upcoming Sri Satya Ganapati Vrata.'}
             </p>
           </div>
 
@@ -421,18 +465,24 @@ export const KatheView: React.FC = () => {
             // Notice card for public users who are not logged in
             <div className="bg-amber-50 border border-amber-200 p-6 rounded-xl text-center space-y-4">
               <Lock className="h-10 w-10 text-amber-600 mx-auto" />
-              <h3 className="font-bold text-charcoal">Administrative Registration Only</h3>
+              <h3 className="font-bold text-charcoal">
+                {language === 'kn' ? 'ಆಡಳಿತ ಮಂಡಳಿ ನೋಂದಣಿ ಮಾತ್ರ' : 'Administrative Registration Only'}
+              </h3>
               <p className="text-xs text-charcoal-light leading-relaxed">
-                To prevent duplicate entries and maintain database integrity, Sri Satya Ganapati Vrata registrations can only be submitted by committee members or administrative users. 
+                {language === 'kn'
+                  ? 'ನಕಲು ನಮೂದುಗಳನ್ನು ತಡೆಗಟ್ಟಲು ಹಾಗೂ ನಿಖರತೆಯನ್ನು ಕಾಪಾಡಲು, ಶ್ರೀ ಸತ್ಯಗಣಪತಿ ವ್ರತದ ನೋಂದಣಿಯನ್ನು ಸಮಿತಿ ಸದಸ್ಯರು ಅಥವಾ ಆಡಳಿತ ಮಂಡಳಿಯವರು ಮಾತ್ರ ಸಲ್ಲಿಸಬಹುದಾಗಿದೆ.'
+                  : 'To prevent duplicate entries and maintain database integrity, Sri Satya Ganapati Vrata registrations can only be submitted by committee members or administrative users.'}
               </p>
               <p className="text-xs font-semibold text-charcoal">
-                Please log in with your unique username and password to register new families.
+                {language === 'kn'
+                  ? 'ಹೊಸ ಕುಟುಂಬಗಳನ್ನು ನೋಂದಾಯಿಸಲು ದಯವಿಟ್ಟು ನಿಮ್ಮ ಬಳಕೆದಾರ ಹೆಸರು ಮತ್ತು ಪಾಸ್‌ವರ್ಡ್‌ನೊಂದಿಗೆ ಲಾಗಿನ್ ಆಗಿ.'
+                  : 'Please log in with your unique username and password to register new families.'}
               </p>
               <Link
                 to="/admin/login"
                 className="inline-flex items-center justify-center bg-primary text-warm text-xs font-bold uppercase px-6 py-2.5 rounded-lg hover:bg-primary-light transition shadow-sm"
               >
-                Go to Login Panel
+                {language === 'kn' ? 'ಲಾಗಿನ್ ಪುಟಕ್ಕೆ ಹೋಗಿ' : 'Go to Login Panel'}
               </Link>
             </div>
           ) : (
@@ -626,15 +676,15 @@ export const KatheView: React.FC = () => {
               className="flex items-center justify-center gap-1.5 text-xs font-bold uppercase bg-primary hover:bg-primary-light text-warm px-4 py-2.5 rounded-lg shadow-sm transition disabled:opacity-50"
             >
               <FileText className="h-4 w-4" />
-              <span>{downloadingPdf ? 'Generating PDF...' : 'Download PDF (ಪಿಡಿಎಫ್ ಡೌನ್‌ಲೋಡ್)'}</span>
+              <span>{downloadingPdf ? (language === 'kn' ? 'ಪಿಡಿಎಫ್ ತಯಾರಾಗುತ್ತಿದೆ...' : 'Generating PDF...') : (language === 'kn' ? 'ಪಿಡಿಎಫ್ ಡೌನ್‌ಲೋಡ್' : 'Download PDF')}</span>
             </button>
             <button
               onClick={handleDownloadCSV}
-              title="Download Excel Spreadsheet"
+              title={language === 'kn' ? 'ಎಕ್ಸೆಲ್ ಡೌನ್‌ಲೋಡ್' : 'Download Excel Spreadsheet'}
               className="flex items-center justify-center gap-1.5 text-xs font-bold uppercase bg-warm-dark hover:bg-warm-dark/85 text-charcoal px-3 py-2.5 rounded-lg shadow-sm border border-warm-dark transition"
             >
               <Download className="h-4 w-4" />
-              <span>Excel</span>
+              <span>{language === 'kn' ? 'ಎಕ್ಸೆಲ್' : 'Excel'}</span>
             </button>
           </div>
         </div>
@@ -645,7 +695,7 @@ export const KatheView: React.FC = () => {
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-charcoal-light" />
             <input
               type="text"
-              placeholder="Search by name, phone, or Book No..."
+              placeholder={language === 'kn' ? 'ಹೆಸರು, ಫೋನ್ ಅಥವಾ ಪುಸ್ತಕ ಸಂಖ್ಯೆಯ ಮೂಲಕ ಹುಡುಕಿ...' : 'Search by name, phone, or Book No...'}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-warm border border-warm-dark rounded-lg pl-9 pr-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
@@ -658,7 +708,7 @@ export const KatheView: React.FC = () => {
               onChange={(e) => setSelectedPlace(e.target.value)}
               className="w-full bg-warm border border-warm-dark rounded-lg px-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
             >
-              <option value="all">All Places / Areas</option>
+              <option value="all">{language === 'kn' ? 'ಎಲ್ಲಾ ಸ್ಥಳಗಳು / ಪ್ರದೇಶಗಳು' : 'All Places / Areas'}</option>
               {places.map(p => (
                 <option key={p._id} value={p._id}>
                   {language === 'kn' ? p.nameKannada : p.name}
@@ -680,13 +730,13 @@ export const KatheView: React.FC = () => {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-warm-dark/50 border-b border-warm-dark text-xs font-bold text-charcoal-light uppercase">
-                      <th className="p-4">Sl No</th>
-                      <th className="p-4">Devotee Name</th>
-                      <th className="p-4">Place / Area</th>
-                      <th className="p-4">Book Number</th>
-                      <th className="p-4">Year</th>
-                      <th className="p-4">Sankalpa Status</th>
-                      {isAuthenticated && <th className="p-4 text-right">Actions</th>}
+                      <th className="p-4">{language === 'kn' ? 'ಕ್ರ.ಸಂ' : 'Sl No'}</th>
+                      <th className="p-4">{language === 'kn' ? 'ಭಕ್ತರ ಹೆಸರು' : 'Devotee Name'}</th>
+                      <th className="p-4">{language === 'kn' ? 'ಸ್ಥಳ / ಪ್ರದೇಶ' : 'Place / Area'}</th>
+                      <th className="p-4">{language === 'kn' ? 'ಪುಸ್ತಕ ಸಂಖ್ಯೆ' : 'Book Number'}</th>
+                      <th className="p-4">{language === 'kn' ? 'ವರ್ಷ' : 'Year'}</th>
+                      <th className="p-4">{language === 'kn' ? 'ಸಂಕಲ್ಪ ಸ್ಥಿತಿ' : 'Sankalpa Status'}</th>
+                      {isAuthenticated && <th className="p-4 text-right">{language === 'kn' ? 'ಕ್ರಮಗಳು' : 'Actions'}</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-warm-dark text-sm">
@@ -696,7 +746,7 @@ export const KatheView: React.FC = () => {
                         <td className="p-4 font-bold text-charcoal">
                           <div>
                             {`${p.firstName || ''} ${p.lastName || ''}`.trim()}
-                            {p.homeName && <span className="block text-xs font-normal text-charcoal-light">Family: {p.homeName}</span>}
+                            {p.homeName && <span className="block text-xs font-normal text-charcoal-light">{language === 'kn' ? 'ಮನೆತನ: ' : 'Family: '}{p.homeName}</span>}
                           </div>
                         </td>
                         <td className="p-4 text-charcoal-light font-medium font-kannada">
@@ -763,7 +813,7 @@ export const KatheView: React.FC = () => {
                       </div>
                       {p.homeName && (
                         <p className="text-xs text-charcoal-light mt-0.5">
-                          Family: <span className="font-semibold text-charcoal">{p.homeName}</span>
+                          {language === 'kn' ? 'ಮನೆತನ: ' : 'Family: '}<span className="font-semibold text-charcoal">{p.homeName}</span>
                         </p>
                       )}
                     </div>
@@ -791,14 +841,18 @@ export const KatheView: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-2 text-xs bg-warm/60 p-2.5 rounded-lg">
                     <div>
-                      <span className="text-charcoal-light block text-[10px] uppercase font-bold">Place / Area</span>
+                      <span className="text-charcoal-light block text-[10px] uppercase font-bold">
+                        {language === 'kn' ? 'ಸ್ಥಳ / ಪ್ರದೇಶ' : 'Place / Area'}
+                      </span>
                       <span className="font-semibold text-charcoal font-kannada flex items-center gap-1 mt-0.5">
                         <MapPin className="h-3 w-3 text-accent-dark shrink-0" />
                         {getPlaceName(p.place)}
                       </span>
                     </div>
                     <div>
-                      <span className="text-charcoal-light block text-[10px] uppercase font-bold">Book No</span>
+                      <span className="text-charcoal-light block text-[10px] uppercase font-bold">
+                        {language === 'kn' ? 'ಪುಸ್ತಕ ಸಂ.' : 'Book No'}
+                      </span>
                       <span className="font-bold text-primary text-sm mt-0.5 block">
                         {p.bookNo || '-'}
                       </span>
@@ -806,7 +860,9 @@ export const KatheView: React.FC = () => {
                   </div>
 
                   <div className="flex items-center justify-between pt-1 text-xs border-t border-warm-dark/40">
-                    <span className="text-charcoal-light font-medium">Year: <strong className="text-charcoal">{p.year}</strong></span>
+                    <span className="text-charcoal-light font-medium">
+                      {language === 'kn' ? 'ವರ್ಷ: ' : 'Year: '}<strong className="text-charcoal">{p.year}</strong>
+                    </span>
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border inline-flex items-center gap-1 ${
                       p.confirmed
                         ? 'bg-emerald-100 text-emerald-800 border-emerald-200'

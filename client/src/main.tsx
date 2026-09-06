@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { Navbar } from './components/Navbar';
 import { MobileNav } from './components/MobileNav';
+import { SplashScreen } from './components/SplashScreen';
 
 // Public Pages
 import { Home } from './pages/Home';
@@ -46,6 +47,7 @@ const AppLayout: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
+      {!isAdminRoute && <SplashScreen />}
       <Navbar />
       <main className="flex-grow pb-16 lg:pb-0">
         <Routes>

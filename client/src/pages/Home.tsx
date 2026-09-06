@@ -280,7 +280,7 @@ export const Home: React.FC = () => {
             <div className="space-y-3 font-kannada text-xs sm:text-sm text-charcoal">
               <div className="space-y-0.5">
                 <span className="text-[10px] font-bold text-secondary uppercase block">Idol Sponsor (ಗಣಪತಿ ಮೂರ್ತಿ ಸೇವಾದಾರರು)</span>
-                <p className="font-bold text-charcoal-dark leading-snug">{settings.idolSponsor || "ಶ್ರೀಮತಿ ರೇಖಾ ಮತ್ತು ಗಣೇಶ ನಾಗೇಶ ನಾಯ್ಕ, ನಾಜಗಾರ (ಪ್ರಭಾತನಗರ, ಹೊನ್ನಾವರ)"}</p>
+                <p className="font-bold text-charcoal-dark leading-snug">{settings.idolSponsor || "ಶ್ರೀಮತಿ ರಕ್ಷಾ ಮತ್ತು ಗಣೇಶ ನಾಗೇಶ ನಾಯ್ಕ, ನಾಜಗಾರ (ಪ್ರಭಾತನಗರ, ಹೊನ್ನಾವರ)"}</p>
               </div>
 
               <div className="space-y-0.5">
@@ -290,11 +290,11 @@ export const Home: React.FC = () => {
 
               <div className="space-y-0.5">
                 <span className="text-[10px] font-bold text-secondary uppercase block">Bhajans Sponsor (ಭಜನಾ ಕಾರ್ಯಕ್ರಮದ ಪ್ರಾಯೋಜಕರು)</span>
-                <p className="font-bold text-charcoal-dark leading-snug">{settings.bhajansSponsor || "ತಿಮ್ಮಪ್ಪ ಆಚಾರ್ಯ,ಮಾರುತಿ ಎಂ. ಆಚಾರ್ಯ, ಸಾಲೇಬೈಲ್,ಸತೀಶ ಕೊಡಿಯಾ ಹಾಗೂ ಅಭಿಷೇಕ ನಾಯ್ಕ"}</p>
+                <p className="font-bold text-charcoal-dark leading-snug">{settings.bhajansSponsor || "ತಿಮ್ಮಪ್ಪ ಆಚಾರ್ಯ,ಮಾರುತಿ ಆಚಾರ್ಯ,ಎನ್. ಡಿ. ಗೌಡ,ಸತೀಶ ಕೊಡಿಯಾ ಹಾಗೂ ಅಭಿಷೇಕ ನಾಯ್ಕ"}</p>
               </div>
 
               <div className="space-y-0.5">
-                <span className="text-[10px] font-bold text-secondary uppercase block">Samuvasada Sponsor (ಸಮುವಸದ ಪ್ರಾಯೋಜಕರು)</span>
+                <span className="text-[10px] font-bold text-secondary uppercase block">Samuvasada Sponsor (ಸಮುವಸ್ತ್ರದ ಪ್ರಾಯೋಜಕರು)</span>
                 <p className="font-bold text-charcoal-dark leading-snug">{settings.samuvasadaSponsor || "ಅಣ್ಣಪ್ಪಯ್ಯ ಆಚಾರ್ಯ ಸಾಲೇಬೈಲ್ ಹಾಗೂ __________________"}</p>
               </div>
 

@@ -18,6 +18,7 @@ import { PrasadaView } from './pages/PrasadaView';
 import { AuctionView } from './pages/AuctionView';
 import { MediaView } from './pages/MediaView';
 import { AboutView } from './pages/AboutView';
+import { TshirtView } from './pages/TshirtView';
 
 // Admin Pages
 import { AdminLogin } from './pages/AdminLogin';
@@ -61,6 +62,7 @@ const AppLayout: React.FC = () => {
           <Route path="/auction" element={<AuctionView />} />
           <Route path="/gallery" element={<MediaView />} />
           <Route path="/about" element={<AboutView />} />
+          <Route path="/tshirt" element={<TshirtView />} />
 
           {/* Admin Routes */}
           <Route path="/admin/login" element={<AdminLogin />} />

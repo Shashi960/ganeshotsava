@@ -39,6 +39,7 @@ export const Navbar: React.FC = () => {
             <Link to="/prasada" className={`hover:text-accent font-medium transition ${isActive('/prasada') ? 'text-accent border-b-2 border-accent' : ''}`}>{t('navPrasada')}</Link>
             <Link to="/auction" className={`hover:text-accent font-medium transition ${isActive('/auction') ? 'text-accent border-b-2 border-accent' : ''}`}>{t('navAuction')}</Link>
             <Link to="/gallery" className={`hover:text-accent font-medium transition ${isActive('/gallery') ? 'text-accent border-b-2 border-accent' : ''}`}>{t('navGallery')}</Link>
+            <Link to="/tshirt" className={`hover:text-accent font-medium transition ${isActive('/tshirt') ? 'text-accent border-b-2 border-accent' : ''}`}>{language === 'kn' ? 'ಟಿ-ಶರ್ಟ್' : 'T-Shirt'}</Link>
             <Link to="/about" className={`hover:text-accent font-medium transition ${isActive('/about') ? 'text-accent border-b-2 border-accent' : ''}`}>{t('navAbout')}</Link>
           </nav>
 

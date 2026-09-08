@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
-import { Settings, ShieldAlert, Save } from 'lucide-react';
+import { Settings, ShieldAlert, Save, Shirt, Trash2, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const AdminSettings: React.FC = () => {
   const { isSuperAdmin } = useAuth();
@@ -22,6 +23,7 @@ export const AdminSettings: React.FC = () => {
   const [samuvasadaSponsor, setSamuvasadaSponsor] = useState('');
   const [prasadaSponsor, setPrasadaSponsor] = useState('');
   const [prasadaDeliveryOpen, setPrasadaDeliveryOpen] = useState(false);
+  const [tshirtSectionEnabled, setTshirtSectionEnabled] = useState(true);
 
   useEffect(() => {
     api.get('/settings').then(res => {
@@ -39,6 +41,7 @@ export const AdminSettings: React.FC = () => {
         setSamuvasadaSponsor(s.samuvasadaSponsor || '');
         setPrasadaSponsor(s.prasadaSponsor || '');
         setPrasadaDeliveryOpen(s.prasadaDeliveryOpen === true || s.prasadaDeliveryOpen === 'true');
+        setTshirtSectionEnabled(s.tshirtSectionEnabled !== false && s.tshirtSectionEnabled !== 'false');
       }
       setLoading(false);
     }).catch(err => {
@@ -67,7 +70,8 @@ export const AdminSettings: React.FC = () => {
         bhajansSponsor,
         samuvasadaSponsor,
         prasadaSponsor,
-        prasadaDeliveryOpen
+        prasadaDeliveryOpen,
+        tshirtSectionEnabled
       });
       if (res.data.status === 'success') {
         showToast('System settings updated successfully!');
@@ -75,6 +79,30 @@ export const AdminSettings: React.FC = () => {
     } catch (error) {
       console.error(error);
       showToast('Failed to update settings.', 'error');
+    }
+  };
+
+  const handleClearAllTshirts = async () => {
+    if (!isSuperAdmin) {
+      showToast('Only Super Administrators can clear records.', 'error');
+      return;
+    }
+    const confirmText = prompt(
+      'WARNING: This will permanently delete ALL recorded T-shirt sizes for the active year.\n\nType "CLEAR" to confirm:'
+    );
+    if (confirmText !== 'CLEAR') {
+      showToast('Action cancelled.');
+      return;
+    }
+
+    try {
+      const res = await api.delete('/tshirt/clear/all');
+      if (res.data.status === 'success') {
+        showToast(res.data.message || 'All T-shirt orders cleared successfully!', 'success');
+      }
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.response?.data?.message || 'Failed to clear T-shirt orders.', 'error');
     }
   };
 
@@ -255,6 +283,61 @@ export const AdminSettings: React.FC = () => {
                   className="w-full bg-warm border border-warm-dark rounded-lg p-2.5 outline-none focus:border-accent disabled:opacity-50"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Temporary Member T-Shirt Module Section */}
+          <div className="bg-white border border-warm-dark rounded-xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-warm-dark pb-3">
+              <div className="flex items-center gap-2">
+                <Shirt className="h-5 w-5 text-accent-dark" />
+                <div>
+                  <h2 className="font-bold text-charcoal text-base">Temporary Member T-Shirt Module (ತಾತ್ಕಾಲಿಕ ಟಿ-ಶರ್ಟ್ ವಿಭಾಗ)</h2>
+                  <p className="text-xs text-charcoal-light">Manage visibility, access, and records for the member T-shirt campaign.</p>
+                </div>
+              </div>
+              <Link
+                to="/tshirt"
+                target="_blank"
+                className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
+              >
+                <span>Open Page</span>
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between bg-warm p-3 rounded-lg border border-warm-dark">
+                <div>
+                  <span className="text-xs font-bold text-charcoal block">Enable T-Shirt Section in Website (ಟಿ-ಶರ್ಟ್ ವಿಭಾಗ ಸಕ್ರಿಯಗೊಳಿಸಿ)</span>
+                  <span className="text-[11px] text-charcoal-light">
+                    When enabled, the T-Shirt link is visible in the Navbar & Mobile Drawer. When disabled, it is hidden from public navigation.
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  disabled={!isSuperAdmin}
+                  checked={tshirtSectionEnabled}
+                  onChange={(e) => setTshirtSectionEnabled(e.target.checked)}
+                  className="h-5 w-5 accent-primary cursor-pointer disabled:opacity-50"
+                />
+              </div>
+
+              {isSuperAdmin && (
+                <div className="flex items-center justify-between pt-2 border-t border-warm-dark">
+                  <span className="text-xs text-rose-800 font-medium">
+                    Need to remove all T-shirt records for a fresh campaign?
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleClearAllTshirts}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>Clear All T-Shirts</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 

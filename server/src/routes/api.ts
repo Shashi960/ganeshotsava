@@ -8,6 +8,7 @@ import * as KatheController from '../controllers/KatheController';
 import * as FinancialController from '../controllers/FinancialController';
 import * as SystemController from '../controllers/SystemController';
 import * as UploadController from '../controllers/UploadController';
+import * as TshirtController from '../controllers/TshirtController';
 
 const router = Router();
 
@@ -107,6 +108,14 @@ router.post('/upload', authenticateJWT, requireRole(['ADMIN', 'SUPER_ADMIN']), U
 // ================= SETTINGS =================
 router.get('/settings', SystemController.getSettings);
 router.put('/settings/edit', authenticateJWT, requireRole(['SUPER_ADMIN']), SystemController.updateSettings);
+
+// ================= T-SHIRT SIZES & DISTRIBUTION =================
+router.get('/tshirt', TshirtController.getTshirtOrders);
+router.get('/tshirt/available-members', TshirtController.getAvailableMembers);
+router.post('/tshirt', TshirtController.createTshirtOrder);
+router.put('/tshirt/:id', authenticateJWT, requireRole(['ADMIN', 'SUPER_ADMIN']), TshirtController.updateTshirtOrder);
+router.delete('/tshirt/:id', authenticateJWT, requireRole(['ADMIN', 'SUPER_ADMIN']), TshirtController.deleteTshirtOrder);
+router.delete('/tshirt/clear/all', authenticateJWT, requireRole(['SUPER_ADMIN']), TshirtController.clearAllTshirtOrders);
 
 // ================= DASHBOARD & AUDIT =================
 router.get('/dashboard/stats', authenticateJWT, requireRole(['ADMIN', 'SUPER_ADMIN']), SystemController.getDashboardStats);

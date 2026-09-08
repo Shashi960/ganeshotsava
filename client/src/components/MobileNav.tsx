@@ -3,7 +3,7 @@ import { NavLink, Link } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Home, Calendar, BookOpen, Truck, Menu, X, Users, Image, Info, Shield, Globe, Landmark 
+  Home, Calendar, BookOpen, Truck, Menu, X, Users, Image, Info, Shield, Globe, Landmark, Shirt 
 } from 'lucide-react';
 
 export const MobileNav: React.FC = () => {
@@ -139,6 +139,15 @@ export const MobileNav: React.FC = () => {
                 >
                   <Image className="h-6 w-6 text-accent group-hover:scale-110 transition" />
                   <span className="font-medium text-xs">{t('navGallery')}</span>
+                </Link>
+
+                <Link
+                  to="/tshirt"
+                  onClick={closeMenu}
+                  className="bg-primary-dark/30 border border-warm/15 hover:border-accent p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition group"
+                >
+                  <Shirt className="h-6 w-6 text-accent group-hover:scale-110 transition" />
+                  <span className="font-medium text-xs">{language === 'kn' ? 'ಟಿ-ಶರ್ಟ್ (T-Shirt)' : 'T-Shirt Sizes'}</span>
                 </Link>
 
                 <Link

@@ -280,12 +280,12 @@ export const Home: React.FC = () => {
             <div className="space-y-3 font-kannada text-xs sm:text-sm text-charcoal">
               <div className="space-y-0.5">
                 <span className="text-[10px] font-bold text-secondary uppercase block">Idol Sponsor (ಗಣಪತಿ ಮೂರ್ತಿ ಸೇವಾದಾರರು)</span>
-                <p className="font-bold text-charcoal-dark leading-snug">{settings.idolSponsor || "ಶ್ರೀಮತಿ ರಕ್ಷಾ ಮತ್ತು ಗಣೇಶ ನಾಗೇಶ ನಾಯ್ಕ, ನಾಜಗಾರ (ಪ್ರಭಾತನಗರ, ಹೊನ್ನಾವರ)"}</p>
+                <p className="font-bold text-charcoal-dark leading-snug">{settings.idolSponsor || "ಸಾರ್ವಜನಿಕ ಶ್ರೀ ಗಣೇಶೋತ್ಸವ ಸಮಿತಿ, ಕೆಳಗಿನೂರು, ನಾಜಗಾರ ಕ್ರಾಸ್"}</p>
               </div>
 
               <div className="space-y-0.5">
                 <span className="text-[10px] font-bold text-secondary uppercase block">Annasantharpane Sponsor (ಅನ್ನ ಸಂತರ್ಪಣಾ ಸೇವಾದಾರರು)</span>
-                <p className="font-bold text-charcoal-dark leading-snug">{settings.annasantharpaneSponsor || "ರಾಜೇಶ್ ನಾಗೇಶ ನಾಯ್ಕ ಹಾಗೂ ಕುಟುಂಬದವರು, ನಾಜಗಾರ (ಪ್ರಭಾತನಗರ, ಹೊನ್ನಾವರ)"}</p>
+                <p className="font-bold text-charcoal-dark leading-snug">{settings.annasantharpaneSponsor || "ಸಾರ್ವಜನಿಕ ಶ್ರೀ ಗಣೇಶೋತ್ಸವ ಸಮಿತಿ, ಕೆಳಗಿನೂರು, ನಾಜಗಾರ ಕ್ರಾಸ್"}</p>
               </div>
 
               <div className="space-y-0.5">

@@ -29,6 +29,14 @@ export const errorHandler = (
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
 
+  // Handle MongoDB duplicate key errors
+  if (err.code === 11000) {
+    err.statusCode = 400;
+    err.status = 'fail';
+    err.isOperational = true;
+    err.message = 'Duplicate entry: A record with this information already exists for this year.';
+  }
+
   if (process.env.NODE_ENV === 'development') {
     res.status(err.statusCode).json({
       status: err.status,

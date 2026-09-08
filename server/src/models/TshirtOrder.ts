@@ -38,8 +38,14 @@ const TshirtOrderSchema = new Schema<ITshirtOrder>(
   { timestamps: true }
 );
 
-// Compound index to avoid duplicates for the same member in the same year
-TshirtOrderSchema.index({ member: 1, year: 1 }, { unique: true, sparse: true });
+// Compound index to avoid duplicates for the same member in the same year, only when member ObjectId exists
+TshirtOrderSchema.index(
+  { member: 1, year: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { member: { $exists: true, $type: 'objectId' } },
+  }
+);
 TshirtOrderSchema.index({ year: 1, size: 1 });
 
 export const TshirtOrder = model<ITshirtOrder>('TshirtOrder', TshirtOrderSchema);

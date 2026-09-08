@@ -20,6 +20,8 @@ import {
   Square,
   Edit2,
   X,
+  Plus,
+  Minus,
 } from 'lucide-react';
 
 interface MemberItem {
@@ -39,6 +41,7 @@ interface TshirtOrderItem {
   homeName?: string;
   memberType: string;
   size: 'S' | 'M' | 'L' | 'XL' | 'XXL' | '3XL';
+  quantity: number;
   phone?: string;
   notes?: string;
   year: string;
@@ -86,6 +89,7 @@ export const TshirtView: React.FC = () => {
   const [customName, setCustomName] = useState<string>('');
   const [customHomeName, setCustomHomeName] = useState<string>('');
   const [selectedSize, setSelectedSize] = useState<'S' | 'M' | 'L' | 'XL' | 'XXL' | '3XL' | ''>('');
+  const [quantity, setQuantity] = useState<number>(1);
 
   // Filtering states for unassigned members checkboxes
   const [memberSearch, setMemberSearch] = useState('');
@@ -98,6 +102,7 @@ export const TshirtView: React.FC = () => {
   // Edit Modal State
   const [editingOrder, setEditingOrder] = useState<TshirtOrderItem | null>(null);
   const [editSize, setEditSize] = useState<'S' | 'M' | 'L' | 'XL' | 'XXL' | '3XL'>('L');
+  const [editQuantity, setEditQuantity] = useState<number>(1);
   const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
@@ -227,8 +232,10 @@ export const TshirtView: React.FC = () => {
 
     setSubmitting(true);
     try {
+      const orderQuantity = Math.max(1, quantity || 1);
       const payload: any = {
         size: selectedSize,
+        quantity: orderQuantity,
       };
 
       if (isOtherSelected) {
@@ -243,11 +250,12 @@ export const TshirtView: React.FC = () => {
       if (res.data.status === 'success' && res.data.orders?.length > 0) {
         const newOrder = res.data.orders[0];
         const recordedName = newOrder.name;
+        const recordedQty = newOrder.quantity || orderQuantity;
 
         showToast(
           language === 'kn'
-            ? `"${recordedName}" ಅವರ ಟಿ-ಶರ್ಟ್ ಅಳತೆ (${selectedSize}) ಯಶಸ್ವಿಯಾಗಿ ದಾಖಲಾಗಿದೆ!`
-            : `T-Shirt size (${selectedSize}) for "${recordedName}" recorded successfully!`,
+            ? `"${recordedName}" ಅವರ ಟಿ-ಶರ್ಟ್ ದಾಖಲಾಗಿದೆ! (ಅಳತೆ: ${selectedSize}, ಸಂಖ್ಯೆ: ${recordedQty})`
+            : `T-Shirt recorded for "${recordedName}"! (Size: ${selectedSize}, Qty: ${recordedQty})`,
           'success'
         );
 
@@ -264,10 +272,10 @@ export const TshirtView: React.FC = () => {
           const prevCount = prev.breakdown[selectedSize] || 0;
           return {
             ...prev,
-            total: prev.total + 1,
+            total: prev.total + recordedQty,
             breakdown: {
               ...prev.breakdown,
-              [selectedSize]: prevCount + 1,
+              [selectedSize]: prevCount + recordedQty,
             },
           };
         });
@@ -278,6 +286,7 @@ export const TshirtView: React.FC = () => {
         setCustomName('');
         setCustomHomeName('');
         setSelectedSize('');
+        setQuantity(1);
       }
     } catch (err: any) {
       console.error(err);
@@ -308,14 +317,15 @@ export const TshirtView: React.FC = () => {
         setOrders((prev) => prev.filter((o) => o._id !== orderId));
 
         if (removedOrder) {
+          const remQty = removedOrder.quantity || 1;
           setStats((prev) => {
-            const count = prev.breakdown[removedOrder.size] || 1;
+            const count = prev.breakdown[removedOrder.size] || 0;
             return {
               ...prev,
-              total: Math.max(0, prev.total - 1),
+              total: Math.max(0, prev.total - remQty),
               breakdown: {
                 ...prev.breakdown,
-                [removedOrder.size]: Math.max(0, count - 1),
+                [removedOrder.size]: Math.max(0, count - remQty),
               },
             };
           });
@@ -333,37 +343,44 @@ export const TshirtView: React.FC = () => {
   const handleOpenEdit = (order: TshirtOrderItem) => {
     setEditingOrder(order);
     setEditSize(order.size);
+    setEditQuantity(order.quantity || 1);
   };
 
   const handleSaveEdit = async () => {
     if (!editingOrder) return;
     setSavingEdit(true);
+    const targetQty = Math.max(1, editQuantity || 1);
     try {
-      const res = await api.put(`/tshirt/${editingOrder._id}`, { size: editSize });
+      const res = await api.put(`/tshirt/${editingOrder._id}`, { size: editSize, quantity: targetQty });
       if (res.data.status === 'success') {
-        showToast(language === 'kn' ? 'ಅಳತೆ ನವೀಕರಿಸಲಾಗಿದೆ.' : 'Size updated successfully.', 'success');
+        showToast(language === 'kn' ? 'ದಾಖಲೆ ನವೀಕರಿಸಲಾಗಿದೆ.' : 'Record updated successfully.', 'success');
         const oldSize = editingOrder.size;
+        const oldQty = editingOrder.quantity || 1;
+
         setOrders((prev) =>
-          prev.map((o) => (o._id === editingOrder._id ? { ...o, size: editSize } : o))
+          prev.map((o) => (o._id === editingOrder._id ? { ...o, size: editSize, quantity: targetQty } : o))
         );
 
         // Update stats
-        if (oldSize !== editSize) {
-          setStats((prev) => ({
+        setStats((prev) => {
+          const updatedBreakdown = { ...prev.breakdown };
+          // subtract old
+          updatedBreakdown[oldSize] = Math.max(0, (updatedBreakdown[oldSize] || 0) - oldQty);
+          // add new
+          updatedBreakdown[editSize] = (updatedBreakdown[editSize] || 0) + targetQty;
+          const diffTotal = targetQty - oldQty;
+          return {
             ...prev,
-            breakdown: {
-              ...prev.breakdown,
-              [oldSize]: Math.max(0, (prev.breakdown[oldSize] || 1) - 1),
-              [editSize]: (prev.breakdown[editSize] || 0) + 1,
-            },
-          }));
-        }
+            total: Math.max(0, prev.total + diffTotal),
+            breakdown: updatedBreakdown,
+          };
+        });
 
         setEditingOrder(null);
       }
     } catch (err) {
       console.error(err);
-      showToast('Failed to update size', 'error');
+      showToast('Failed to update record', 'error');
     } finally {
       setSavingEdit(false);
     }
@@ -745,6 +762,53 @@ export const TshirtView: React.FC = () => {
           </div>
         </div>
 
+        {/* Step 3: Quantity (ಸಂಖ್ಯೆ) */}
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-accent-dark" />
+            <h2 className="text-lg sm:text-xl font-extrabold text-primary">
+              {language === 'kn' ? 'ಹಂತ ೩: ಟಿ-ಶರ್ಟ್ ಸಂಖ್ಯೆ (No. of T-Shirts)' : 'Step 3: Number of T-Shirts'}
+            </h2>
+            <span className="text-rose-600 font-bold">*</span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="inline-flex items-center border-2 border-warm-dark rounded-xl bg-white overflow-hidden shadow-xs">
+              <button
+                type="button"
+                onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                className="p-3 hover:bg-warm text-charcoal transition cursor-pointer disabled:opacity-40"
+                disabled={quantity <= 1}
+                aria-label="Decrease quantity"
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+              <input
+                type="number"
+                min={1}
+                max={99}
+                value={quantity}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  setQuantity(isNaN(val) || val < 1 ? 1 : val);
+                }}
+                className="w-16 text-center font-black text-lg text-primary outline-none py-2"
+              />
+              <button
+                type="button"
+                onClick={() => setQuantity((prev) => prev + 1)}
+                className="p-3 hover:bg-warm text-charcoal transition cursor-pointer"
+                aria-label="Increase quantity"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+            <span className="text-xs text-charcoal-light font-medium">
+              {language === 'kn' ? '(ಸಾಮಾನ್ಯವಾಗಿ ೧, ಹೆಚ್ಚಿನ ಸಂಖ್ಯೆ ಬೇಕಿದ್ದರೆ ಬದಲಾಯಿಸಿ)' : '(Default is 1, change if multiple required)'}
+            </span>
+          </div>
+        </div>
+
         {/* Submit Button */}
         <div className="pt-2">
           <button
@@ -877,6 +941,9 @@ export const TshirtView: React.FC = () => {
                     <span className="px-3 py-1 rounded-lg text-xs font-black bg-blue-100 text-blue-900 border border-blue-300">
                       {ord.size}
                     </span>
+                    <span className="px-2 py-1 rounded-lg text-xs font-black bg-amber-100 text-amber-900 border border-amber-300">
+                      ×{ord.quantity || 1}
+                    </span>
 
                     {isAuthenticated && (
                       <div className="flex items-center gap-1">
@@ -884,7 +951,7 @@ export const TshirtView: React.FC = () => {
                           type="button"
                           onClick={() => handleOpenEdit(ord)}
                           className="p-1.5 text-primary hover:bg-warm-dark rounded transition"
-                          title="Edit Size"
+                          title="Edit Size & Quantity"
                         >
                           <Edit2 className="h-3.5 w-3.5" />
                         </button>
@@ -912,7 +979,8 @@ export const TshirtView: React.FC = () => {
                     <th className="p-4">{language === 'kn' ? 'ಸದಸ್ಯರ / ಭಕ್ತರ ಹೆಸರು' : 'Member Name'}</th>
                     <th className="p-4">{language === 'kn' ? 'ವರ್ಗ' : 'Category'}</th>
                     <th className="p-4">{language === 'kn' ? 'ಮನೆತನ' : 'Home / Family'}</th>
-                    <th className="p-4 text-center">{language === 'kn' ? 'ಟಿ-ಶರ್ಟ್ ಅಳತೆ' : 'T-Shirt Size'}</th>
+                    <th className="p-4 text-center">{language === 'kn' ? 'ಅಳತೆ' : 'Size'}</th>
+                    <th className="p-4 text-center">{language === 'kn' ? 'ಸಂಖ್ಯೆ' : 'Qty'}</th>
                     {isAuthenticated && <th className="p-4 text-right">{language === 'kn' ? 'ಕ್ರಮಗಳು' : 'Actions'}</th>}
                   </tr>
                 </thead>
@@ -930,6 +998,11 @@ export const TshirtView: React.FC = () => {
                       <td className="p-4 text-center">
                         <span className="inline-block px-3 py-1 rounded-lg text-xs font-black bg-blue-100 text-blue-900 border border-blue-200">
                           {ord.size}
+                        </span>
+                      </td>
+                      <td className="p-4 text-center">
+                        <span className="inline-block px-2.5 py-0.5 rounded-lg text-xs font-black bg-amber-50 text-amber-900 border border-amber-200">
+                          {ord.quantity || 1}
                         </span>
                       </td>
                       {isAuthenticated && (
@@ -963,13 +1036,13 @@ export const TshirtView: React.FC = () => {
         )}
       </div>
 
-      {/* Edit Size Modal */}
+      {/* Edit Size & Quantity Modal */}
       {editingOrder && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl border border-warm-dark p-6 max-w-md w-full shadow-2xl space-y-4 animate-scaleUp">
             <div className="flex items-center justify-between border-b border-warm-dark pb-3">
               <h3 className="font-extrabold text-charcoal text-base">
-                {language === 'kn' ? 'ಟಿ-ಶರ್ಟ್ ಅಳತೆ ತಿದ್ದುಪಡಿ' : 'Edit T-Shirt Size'}
+                {language === 'kn' ? 'ಟಿ-ಶರ್ಟ್ ಅಳತೆ ಹಾಗೂ ಸಂಖ್ಯೆ ತಿದ್ದುಪಡಿ' : 'Edit T-Shirt Size & Quantity'}
               </h3>
               <button
                 onClick={() => setEditingOrder(null)}
@@ -1005,6 +1078,43 @@ export const TshirtView: React.FC = () => {
                     {sz.label} ({sz.chest})
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Quantity Stepper in Edit Modal */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-charcoal block">
+                {language === 'kn' ? 'ಟಿ-ಶರ್ಟ್ ಸಂಖ್ಯೆ (Quantity):' : 'Number of T-Shirts (Quantity):'}
+              </label>
+              <div className="flex items-center gap-3">
+                <div className="inline-flex items-center border border-warm-dark rounded-xl bg-warm/50 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setEditQuantity((prev) => Math.max(1, prev - 1))}
+                    className="p-2 hover:bg-warm-dark text-charcoal transition cursor-pointer disabled:opacity-40"
+                    disabled={editQuantity <= 1}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <input
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={editQuantity}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setEditQuantity(isNaN(val) || val < 1 ? 1 : val);
+                    }}
+                    className="w-16 text-center font-black text-base text-primary bg-white outline-none py-1.5"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setEditQuantity((prev) => prev + 1)}
+                    className="p-2 hover:bg-warm-dark text-charcoal transition cursor-pointer"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             </div>
 

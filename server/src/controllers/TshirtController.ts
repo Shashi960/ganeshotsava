@@ -47,20 +47,24 @@ export const getTshirtOrders = async (req: Request, res: Response, next: NextFun
       Other: 0,
     };
 
+    let totalQuantity = 0;
     orders.forEach((ord) => {
+      const qty = Math.max(1, Number(ord.quantity) || 1);
+      totalQuantity += qty;
       const s = ord.size as TshirtSize;
       if (breakdown[s] !== undefined) {
-        breakdown[s] = (breakdown[s] || 0) + 1;
+        breakdown[s] = (breakdown[s] || 0) + qty;
       }
       const t = ord.memberType || 'Other';
-      typeBreakdown[t] = (typeBreakdown[t] || 0) + 1;
+      typeBreakdown[t] = (typeBreakdown[t] || 0) + qty;
     });
 
     res.status(200).json({
       status: 'success',
       orders,
       stats: {
-        total: orders.length,
+        total: totalQuantity,
+        totalOrders: orders.length,
         breakdown,
         typeBreakdown,
         year,
@@ -132,6 +136,8 @@ export const createTshirtOrder = async (req: AuthRequest, res: Response, next: N
         return next(new AppError(`Invalid T-shirt size: "${item.size}". Must be one of: ${VALID_SIZES.join(', ')}`, 400));
       }
 
+      const quantity = Math.max(1, parseInt(item.quantity, 10) || 1);
+
       if (item.memberId) {
         // Link to existing member
         const member = await Member.findById(item.memberId);
@@ -152,6 +158,7 @@ export const createTshirtOrder = async (req: AuthRequest, res: Response, next: N
           homeName: member.homeName || item.homeName,
           memberType: member.memberType,
           size,
+          quantity,
           phone: member.phone || item.phone,
           notes: item.notes,
           year,
@@ -170,6 +177,7 @@ export const createTshirtOrder = async (req: AuthRequest, res: Response, next: N
           homeName: (item.homeName || '').trim(),
           memberType: 'Other',
           size,
+          quantity,
           phone: (item.phone || '').trim(),
           notes: item.notes,
           year,
@@ -207,6 +215,10 @@ export const updateTshirtOrder = async (req: AuthRequest, res: Response, next: N
         return next(new AppError(`Invalid size: ${req.body.size}. Must be: ${VALID_SIZES.join(', ')}`, 400));
       }
       existing.size = size as TshirtSize;
+    }
+
+    if (req.body.quantity !== undefined) {
+      existing.quantity = Math.max(1, parseInt(req.body.quantity, 10) || 1);
     }
 
     if (req.body.name && !existing.member) {

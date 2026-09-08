@@ -7,6 +7,7 @@ export interface ITshirtOrder extends Document {
   homeName?: string;
   memberType: 'Member' | 'Junior Member' | 'Senior Member' | 'Committee Member' | 'Volunteer' | 'Other';
   size: 'S' | 'M' | 'L' | 'XL' | 'XXL' | '3XL';
+  quantity: number;
   phone?: string;
   notes?: string;
   year: string;
@@ -29,6 +30,12 @@ const TshirtOrderSchema = new Schema<ITshirtOrder>(
     size: {
       type: String,
       enum: ['S', 'M', 'L', 'XL', 'XXL', '3XL'],
+      required: true,
+    },
+    quantity: {
+      type: Number,
+      default: 1,
+      min: 1,
       required: true,
     },
     phone: { type: String, trim: true },

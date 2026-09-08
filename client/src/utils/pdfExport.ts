@@ -339,11 +339,12 @@ export const exportTshirtToPdf = async (
       const contentWidth = pageWidth - margin * 2; // 769.89
 
       const cols = [
-        { header: 'ಕ್ರಮ ಸಂಖ್ಯೆ\n(SL NO)', width: 55, align: 'center' as const },
+        { header: 'ಕ್ರಮ ಸಂಖ್ಯೆ\n(SL NO)', width: 45, align: 'center' as const },
         { header: 'ಸದಸ್ಯರ / ಭಕ್ತರ ಹೆಸರು\n(MEMBER / DEVOTEE NAME)', width: 200, align: 'left' as const },
-        { header: 'ವರ್ಗ\n(CATEGORY)', width: 120, align: 'center' as const },
-        { header: 'ಮನೆತನ / ವಿವರ\n(HOME / FAMILY)', width: 155, align: 'left' as const },
-        { header: 'ಟಿ-ಶರ್ಟ್ ಅಳತೆ\n(SIZE)', width: 85, align: 'center' as const },
+        { header: 'ವರ್ಗ\n(CATEGORY)', width: 110, align: 'center' as const },
+        { header: 'ಮನೆತನ / ವಿವರ\n(HOME / FAMILY)', width: 145, align: 'left' as const },
+        { header: 'ಅಳತೆ\n(SIZE)', width: 60, align: 'center' as const },
+        { header: 'ಸಂಖ್ಯೆ\n(QTY)', width: 55, align: 'center' as const },
         { header: 'ಸ್ವೀಕರಿಸಿದ ಸಹಿ\n(SIGNATURE / RECEIVED)', width: 154.89, align: 'center' as const },
       ];
 
@@ -486,7 +487,7 @@ export const exportTshirtToPdf = async (
         curX += cols[3].width;
 
         // 5. SIZE (Prominent Badge)
-        const sizeW = 44;
+        const sizeW = 38;
         const sizeH = 16;
         const sizeX = curX + (cols[4].width - sizeW) / 2;
         const sizeY = y + 4;
@@ -500,10 +501,20 @@ export const exportTshirtToPdf = async (
         );
         curX += cols[4].width;
 
-        // 6. SIGNATURE / RECEIVED (Empty box with subtle dotted line)
+        // 6. QUANTITY
+        const qty = o.quantity || 1;
+        doc.fillColor('#111827').fontSize(9.5).text(
+          String(qty),
+          curX,
+          y + 7,
+          { width: cols[5].width, align: cols[5].align }
+        );
+        curX += cols[5].width;
+
+        // 7. SIGNATURE / RECEIVED (Empty box with subtle dotted line)
         doc.strokeColor('#D1D5DB').lineWidth(0.5)
           .moveTo(curX + 15, y + rowHeight - 6)
-          .lineTo(curX + cols[5].width - 15, y + rowHeight - 6)
+          .lineTo(curX + cols[6].width - 15, y + rowHeight - 6)
           .stroke();
 
         y += rowHeight;

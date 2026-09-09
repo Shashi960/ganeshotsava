@@ -300,9 +300,9 @@ export const exportTshirtToPdf = async (
   return new Promise((resolve, reject) => {
     try {
       const doc = new (PDFDocument as any)({
-        layout: 'landscape',
+        layout: 'portrait',
         size: 'A4',
-        margin: 36,
+        margin: 28,
         bufferPages: true,
         font: fontBuffer,
       });
@@ -333,19 +333,19 @@ export const exportTshirtToPdf = async (
       doc.registerFont('Nirmala', fontBuffer);
       doc.font('Nirmala');
 
-      const pageWidth = 841.89;
-      const pageHeight = 595.28;
-      const margin = 36;
-      const contentWidth = pageWidth - margin * 2; // 769.89
+      const pageWidth = 595.28;
+      const pageHeight = 841.89;
+      const margin = 28;
+      const contentWidth = pageWidth - margin * 2; // 539.28
 
       const cols = [
-        { header: 'ಕ್ರಮ ಸಂಖ್ಯೆ\n(SL NO)', width: 45, align: 'center' as const },
-        { header: 'ಸದಸ್ಯರ / ಭಕ್ತರ ಹೆಸರು\n(MEMBER / DEVOTEE NAME)', width: 200, align: 'left' as const },
-        { header: 'ವರ್ಗ\n(CATEGORY)', width: 110, align: 'center' as const },
-        { header: 'ಮನೆತನ / ವಿವರ\n(HOME / FAMILY)', width: 145, align: 'left' as const },
-        { header: 'ಅಳತೆ\n(SIZE)', width: 60, align: 'center' as const },
-        { header: 'ಸಂಖ್ಯೆ\n(QTY)', width: 55, align: 'center' as const },
-        { header: 'ಸ್ವೀಕರಿಸಿದ ಸಹಿ\n(SIGNATURE / RECEIVED)', width: 154.89, align: 'center' as const },
+        { header: 'ಕ್ರ.ಸಂ\n(SL)', width: 32, align: 'center' as const },
+        { header: 'ಸದಸ್ಯರ / ಭಕ್ತರ ಹೆಸರು\n(MEMBER / DEVOTEE NAME)', width: 160, align: 'left' as const },
+        { header: 'ವರ್ಗ\n(CATEGORY)', width: 70, align: 'center' as const },
+        { header: 'ಮನೆತನ / ವಿವರ\n(HOME / FAMILY)', width: 95, align: 'left' as const },
+        { header: 'ಅಳತೆ\n(SIZE)', width: 44, align: 'center' as const },
+        { header: 'ಸಂಖ್ಯೆ\n(QTY)', width: 40, align: 'center' as const },
+        { header: 'ಸ್ವೀಕರಿಸಿದ ಸಹಿ\n(SIGNATURE / RECEIVED)', width: 98.28, align: 'center' as const },
       ];
 
       let y = margin;
@@ -355,57 +355,57 @@ export const exportTshirtToPdf = async (
       const drawHeader = (isFirstPage: boolean) => {
         if (isFirstPage) {
           // Document Header / Title
-          doc.fillColor('#7A1C1C').fontSize(16).text(
+          doc.fillColor('#7A1C1C').fontSize(14).text(
             'ಗಣೇಶೋತ್ಸವ ಸಮಿತಿ, ಕೆಳಗಿನೂರು, ನಾಜಗಾರ ಕ್ರಾಸ್',
-            margin,
-            y,
-            { align: 'center', width: contentWidth }
-          );
-          y += 20;
-
-          doc.fillColor('#1F2937').fontSize(12).text(
-            `${currentYear} - ಸದಸ್ಯರ ಟಿ-ಶರ್ಟ್ ಅಳತೆ ಹಾಗೂ ವಿತರಣಾ ಪಟ್ಟಿ (T-Shirt Distribution Roster)`,
             margin,
             y,
             { align: 'center', width: contentWidth }
           );
           y += 18;
 
+          doc.fillColor('#1F2937').fontSize(11).text(
+            `${currentYear} - ಸದಸ್ಯರ ಟಿ-ಶರ್ಟ್ ಅಳತೆ ಹಾಗೂ ವಿತರಣಾ ಪಟ್ಟಿ (T-Shirt Distribution Roster)`,
+            margin,
+            y,
+            { align: 'center', width: contentWidth }
+          );
+          y += 16;
+
           // Stats / Summary Box if stats are provided
           if (stats) {
-            const summaryH = 24;
+            const summaryH = 22;
             doc.roundedRect(margin, y, contentWidth, summaryH, 4).fillAndStroke('#FEF3C7', '#F59E0B');
 
             const b = stats.breakdown || {};
-            const summaryText = `ಒಟ್ಟು ಟಿ-ಶರ್ಟ್ (TOTAL): ${stats.total || orders.length}   |   S: ${b['S'] || 0}   |   M: ${b['M'] || 0}   |   L: ${b['L'] || 0}   |   XL: ${b['XL'] || 0}   |   XXL: ${b['XXL'] || 0}   |   3XL: ${b['3XL'] || 0}`;
+            const summaryText = `ಒಟ್ಟು (TOTAL): ${stats.total || orders.length}   |   S: ${b['S'] || 0}   M: ${b['M'] || 0}   L: ${b['L'] || 0}   XL: ${b['XL'] || 0}   XXL: ${b['XXL'] || 0}   3XL: ${b['3XL'] || 0}`;
 
-            doc.fillColor('#78350F').fontSize(9.5).text(
+            doc.fillColor('#78350F').fontSize(8.5).text(
               summaryText,
               margin,
-              y + 6,
+              y + 5.5,
               { align: 'center', width: contentWidth }
             );
-            y += summaryH + 10;
+            y += summaryH + 8;
           } else {
-            y += 6;
+            y += 4;
           }
         } else {
-          doc.fillColor('#7A1C1C').fontSize(10).text(
+          doc.fillColor('#7A1C1C').fontSize(9.5).text(
             `ಗಣೇಶೋತ್ಸವ ಸಮಿತಿ - ಸದಸ್ಯರ ಟಿ-ಶರ್ಟ್ ವಿತರಣಾ ಪಟ್ಟಿ (${currentYear})`,
             margin,
             y,
             { align: 'left', width: contentWidth }
           );
-          y += 16;
+          y += 14;
         }
 
         // Table Header
-        const headerHeight = 28;
+        const headerHeight = 26;
         doc.rect(margin, y, contentWidth, headerHeight).fill('#7A1C1C');
 
         let curX = margin;
         cols.forEach((col) => {
-          doc.fillColor('#FFFFFF').fontSize(8.5).text(
+          doc.fillColor('#FFFFFF').fontSize(8).text(
             col.header,
             curX,
             y + 4,
@@ -419,7 +419,7 @@ export const exportTshirtToPdf = async (
 
       drawHeader(true);
 
-      const rowHeight = 24;
+      const rowHeight = 22;
       const bottomLimit = pageHeight - margin - 20;
 
       orders.forEach((o, index) => {
@@ -442,79 +442,79 @@ export const exportTshirtToPdf = async (
         let curX = margin;
 
         // 1. SL NO
-        doc.fillColor('#4B5563').fontSize(9).text(
+        doc.fillColor('#4B5563').fontSize(8.5).text(
           String(index + 1),
           curX,
-          y + 7,
+          y + 6,
           { width: cols[0].width, align: cols[0].align }
         );
         curX += cols[0].width;
 
         // 2. NAME
         const memberName = o.name || (o.member ? `${o.member.firstName || ''} ${o.member.lastName || ''}`.trim() : '-');
-        doc.fillColor('#111827').fontSize(9.5).text(
+        doc.fillColor('#111827').fontSize(9).text(
           memberName,
-          curX + 6,
-          y + 6,
-          { width: cols[1].width - 12, align: cols[1].align }
+          curX + 4,
+          y + 5.5,
+          { width: cols[1].width - 8, align: cols[1].align, lineBreak: false, ellipsis: true }
         );
         curX += cols[1].width;
 
         // 3. CATEGORY / MEMBER TYPE
         let catText = o.memberType || o.member?.memberType || 'Other';
-        if (catText === 'Member') catText = 'ಸದಸ್ಯರು (Member)';
-        else if (catText === 'Junior Member') catText = 'ಕಿರಿಯರು (Junior)';
-        else if (catText === 'Senior Member') catText = 'ಹಿರಿಯರು (Senior)';
-        else if (catText === 'Committee Member') catText = 'ಸಮಿತಿ (Committee)';
-        else if (catText === 'Other') catText = 'ಇತರೆ (Other)';
+        if (catText === 'Member') catText = 'ಸದಸ್ಯರು';
+        else if (catText === 'Junior Member') catText = 'ಕಿರಿಯರು';
+        else if (catText === 'Senior Member') catText = 'ಹಿರಿಯರು';
+        else if (catText === 'Committee Member') catText = 'ಸಮಿತಿ';
+        else if (catText === 'Other') catText = 'ಇತರೆ';
 
-        doc.fillColor('#374151').fontSize(8.5).text(
+        doc.fillColor('#374151').fontSize(8).text(
           catText,
-          curX + 4,
-          y + 7,
-          { width: cols[2].width - 8, align: cols[2].align }
+          curX + 2,
+          y + 6,
+          { width: cols[2].width - 4, align: cols[2].align }
         );
         curX += cols[2].width;
 
         // 4. HOME / FAMILY
         const homeText = o.homeName || o.member?.homeName || '-';
-        doc.fillColor('#4B5563').fontSize(9).text(
+        doc.fillColor('#4B5563').fontSize(8.5).text(
           homeText,
-          curX + 6,
-          y + 7,
-          { width: cols[3].width - 12, align: cols[3].align }
+          curX + 4,
+          y + 6,
+          { width: cols[3].width - 8, align: cols[3].align, lineBreak: false, ellipsis: true }
         );
         curX += cols[3].width;
 
         // 5. SIZE (Prominent Badge)
-        const sizeW = 38;
-        const sizeH = 16;
+        const sizeW = 28;
+        const sizeH = 14;
         const sizeX = curX + (cols[4].width - sizeW) / 2;
         const sizeY = y + 4;
 
         doc.roundedRect(sizeX, sizeY, sizeW, sizeH, 3).fill('#DBEAFE');
-        doc.fillColor('#1E40AF').fontSize(9).text(
+        doc.fillColor('#1E40AF').fontSize(8.5).text(
           o.size || '-',
           sizeX,
-          sizeY + 3,
+          sizeY + 2.5,
           { width: sizeW, align: 'center' }
         );
         curX += cols[4].width;
 
         // 6. QUANTITY
         const qty = o.quantity || 1;
-        doc.fillColor('#111827').fontSize(9.5).text(
+        doc.fillColor('#111827').fontSize(9).text(
           String(qty),
           curX,
-          y + 7,
+          y + 6,
           { width: cols[5].width, align: cols[5].align }
         );
         curX += cols[5].width;
 
         // 7. SIGNATURE / RECEIVED (Empty box with subtle dotted line)
         doc.strokeColor('#D1D5DB').lineWidth(0.5)
-          .moveTo(curX + 15, y + rowHeight - 6)
-          .lineTo(curX + cols[6].width - 15, y + rowHeight - 6)
+          .moveTo(curX + 8, y + rowHeight - 6)
+          .lineTo(curX + cols[6].width - 8, y + rowHeight - 6)
           .stroke();
 
         y += rowHeight;
@@ -524,10 +524,10 @@ export const exportTshirtToPdf = async (
       const range = doc.bufferedPageRange();
       for (let i = range.start; i < range.start + range.count; i++) {
         doc.switchToPage(i);
-        doc.fillColor('#9CA3AF').fontSize(8).text(
+        doc.fillColor('#9CA3AF').fontSize(7.5).text(
           `Page ${i + 1} of ${range.count}  |  Ganeshotsava Samiti Kelaginuru Najagara Cross  |  T-Shirt Distribution`,
           margin,
-          pageHeight - 24,
+          pageHeight - 20,
           { align: 'center', width: contentWidth }
         );
       }

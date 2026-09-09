@@ -1,15 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Home, Calendar, BookOpen, Truck, Menu, X, Users, Image, Info, Shield, Globe, Landmark, Shirt 
+  Home, Calendar, BookOpen, Truck, Menu, X, Users, Image, Info, Shield, Globe, Landmark, Shirt, Sparkles 
 } from 'lucide-react';
+import api from '../services/api';
 
 export const MobileNav: React.FC = () => {
   const { language, setLanguage, t } = useLanguage();
   const { isAuthenticated } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [customNavEvents, setCustomNavEvents] = useState<
+    Array<{ _id: string; slug: string; title: string; titleKannada: string }>
+  >([]);
+
+  useEffect(() => {
+    api
+      .get('/custom-events')
+      .then((res) => {
+        if (res.data.status === 'success' && res.data.events) {
+          setCustomNavEvents(res.data.events.filter((e: any) => e.showInNavbar !== false));
+        }
+      })
+      .catch(() => {});
+  }, [isMenuOpen]);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
@@ -149,6 +164,20 @@ export const MobileNav: React.FC = () => {
                   <Shirt className="h-6 w-6 text-accent group-hover:scale-110 transition" />
                   <span className="font-medium text-xs">{language === 'kn' ? 'ಟಿ-ಶರ್ಟ್ (T-Shirt)' : 'T-Shirt Sizes'}</span>
                 </Link>
+
+                {customNavEvents.map((evt) => (
+                  <Link
+                    key={evt._id}
+                    to={`/event-reg/${evt.slug}`}
+                    onClick={closeMenu}
+                    className="bg-primary-dark/30 border border-warm/15 hover:border-accent p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition group"
+                  >
+                    <Sparkles className="h-6 w-6 text-accent group-hover:scale-110 transition" />
+                    <span className="font-medium text-xs">
+                      {language === 'kn' ? evt.titleKannada : evt.title}
+                    </span>
+                  </Link>
+                ))}
 
                 <Link
                   to="/about"

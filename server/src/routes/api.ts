@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticateJWT, requireRole } from '../middleware/auth';
+import { authenticateJWT, requireRole, optionalAuth } from '../middleware/auth';
 
 import * as AuthController from '../controllers/AuthController';
 import * as EventController from '../controllers/EventController';
@@ -9,6 +9,7 @@ import * as FinancialController from '../controllers/FinancialController';
 import * as SystemController from '../controllers/SystemController';
 import * as UploadController from '../controllers/UploadController';
 import * as TshirtController from '../controllers/TshirtController';
+import * as CustomEventController from '../controllers/CustomEventController';
 
 const router = Router();
 
@@ -116,6 +117,20 @@ router.post('/tshirt', TshirtController.createTshirtOrder);
 router.put('/tshirt/:id', authenticateJWT, requireRole(['ADMIN', 'SUPER_ADMIN']), TshirtController.updateTshirtOrder);
 router.delete('/tshirt/:id', authenticateJWT, requireRole(['ADMIN', 'SUPER_ADMIN']), TshirtController.deleteTshirtOrder);
 router.delete('/tshirt/clear/all', authenticateJWT, requireRole(['SUPER_ADMIN']), TshirtController.clearAllTshirtOrders);
+
+// ================= CUSTOM DYNAMIC REGISTRATION EVENTS =================
+router.get('/custom-events', optionalAuth, CustomEventController.getCustomEvents);
+router.get('/custom-events/slug/:slug', optionalAuth, CustomEventController.getCustomEventBySlug);
+router.get('/custom-events/:id', authenticateJWT, requireRole(['ADMIN', 'SUPER_ADMIN']), CustomEventController.getCustomEventById);
+router.post('/custom-events', authenticateJWT, requireRole(['ADMIN', 'SUPER_ADMIN']), CustomEventController.createCustomEvent);
+router.put('/custom-events/:id', authenticateJWT, requireRole(['ADMIN', 'SUPER_ADMIN']), CustomEventController.updateCustomEvent);
+router.delete('/custom-events/:id', authenticateJWT, requireRole(['ADMIN', 'SUPER_ADMIN']), CustomEventController.deleteCustomEvent);
+
+// Registrations for a custom event
+router.get('/custom-events/:id/registrations', optionalAuth, CustomEventController.getEventRegistrations);
+router.post('/custom-events/:id/registrations', optionalAuth, CustomEventController.createEventRegistration);
+router.put('/custom-events/registrations/:regId', authenticateJWT, requireRole(['ADMIN', 'SUPER_ADMIN']), CustomEventController.updateEventRegistration);
+router.delete('/custom-events/registrations/:regId', authenticateJWT, requireRole(['ADMIN', 'SUPER_ADMIN']), CustomEventController.deleteEventRegistration);
 
 // ================= DASHBOARD & AUDIT =================
 router.get('/dashboard/stats', authenticateJWT, requireRole(['ADMIN', 'SUPER_ADMIN']), SystemController.getDashboardStats);

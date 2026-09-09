@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 import { Flame, LogOut, User, LayoutDashboard, Globe } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -16,6 +17,21 @@ export const Navbar: React.FC = () => {
   };
 
   const isActive = (path: string) => location.pathname === path;
+
+  const [customNavEvents, setCustomNavEvents] = React.useState<
+    Array<{ _id: string; slug: string; title: string; titleKannada: string }>
+  >([]);
+
+  React.useEffect(() => {
+    api
+      .get('/custom-events')
+      .then((res) => {
+        if (res.data.status === 'success' && res.data.events) {
+          setCustomNavEvents(res.data.events.filter((e: any) => e.showInNavbar !== false));
+        }
+      })
+      .catch(() => {});
+  }, [location.pathname]);
 
   return (
     <header className="sticky top-0 z-50 bg-primary text-warm shadow-md border-b-2 border-accent">
@@ -40,6 +56,17 @@ export const Navbar: React.FC = () => {
             <Link to="/auction" className={`hover:text-accent font-medium transition ${isActive('/auction') ? 'text-accent border-b-2 border-accent' : ''}`}>{t('navAuction')}</Link>
             <Link to="/gallery" className={`hover:text-accent font-medium transition ${isActive('/gallery') ? 'text-accent border-b-2 border-accent' : ''}`}>{t('navGallery')}</Link>
             <Link to="/tshirt" className={`hover:text-accent font-medium transition ${isActive('/tshirt') ? 'text-accent border-b-2 border-accent' : ''}`}>{language === 'kn' ? 'ಟಿ-ಶರ್ಟ್' : 'T-Shirt'}</Link>
+            {customNavEvents.map((evt) => (
+              <Link
+                key={evt._id}
+                to={`/event-reg/${evt.slug}`}
+                className={`hover:text-accent font-medium transition ${
+                  isActive(`/event-reg/${evt.slug}`) ? 'text-accent border-b-2 border-accent' : ''
+                }`}
+              >
+                {language === 'kn' ? evt.titleKannada : evt.title}
+              </Link>
+            ))}
             <Link to="/about" className={`hover:text-accent font-medium transition ${isActive('/about') ? 'text-accent border-b-2 border-accent' : ''}`}>{t('navAbout')}</Link>
           </nav>
 

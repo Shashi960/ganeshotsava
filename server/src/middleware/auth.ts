@@ -50,3 +50,27 @@ export const requireRole = (roles: Array<'ADMIN' | 'SUPER_ADMIN'>) => {
     next();
   };
 };
+
+export const optionalAuth = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    try {
+      const secret = process.env.JWT_SECRET || 'supersecretjwtkeychangeinproduction';
+      const decoded = jwt.verify(token, secret) as any;
+      (req as AuthRequest).user = {
+        id: decoded.id,
+        email: decoded.email,
+        role: decoded.role,
+      };
+    } catch (e) {
+      // Ignore token parse error for optional authentication
+    }
+  }
+  next();
+};
+

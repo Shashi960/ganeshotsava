@@ -19,6 +19,7 @@ import { AuctionView } from './pages/AuctionView';
 import { MediaView } from './pages/MediaView';
 import { AboutView } from './pages/AboutView';
 import { TshirtView } from './pages/TshirtView';
+import { DynamicEventRegistration } from './pages/DynamicEventRegistration';
 
 // Admin Pages
 import { AdminLogin } from './pages/AdminLogin';
@@ -32,6 +33,8 @@ import { AdminFinancials } from './pages/AdminFinancials';
 import { AdminKathe } from './pages/AdminKathe';
 import { AdminAuction } from './pages/AdminAuction';
 import { AdminUsers } from './pages/AdminUsers';
+import { AdminCustomEvents } from './pages/AdminCustomEvents';
+import { AdminCustomEventRoster } from './pages/AdminCustomEventRoster';
 
 import './index.css';
 
@@ -63,6 +66,7 @@ const AppLayout: React.FC = () => {
           <Route path="/gallery" element={<MediaView />} />
           <Route path="/about" element={<AboutView />} />
           <Route path="/tshirt" element={<TshirtView />} />
+          <Route path="/event-reg/:slug" element={<DynamicEventRegistration />} />
 
           {/* Admin Routes */}
           <Route path="/admin/login" element={<AdminLogin />} />
@@ -143,6 +147,22 @@ const AppLayout: React.FC = () => {
             element={
               <ProtectedRoute>
                 <AdminUsers />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/custom-events"
+            element={
+              <ProtectedRoute>
+                <AdminCustomEvents />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/custom-events/:id"
+            element={
+              <ProtectedRoute>
+                <AdminCustomEventRoster />
               </ProtectedRoute>
             }
           />

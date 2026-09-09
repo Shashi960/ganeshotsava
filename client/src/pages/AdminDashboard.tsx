@@ -202,6 +202,19 @@ export const AdminDashboard: React.FC = () => {
                   <p className="text-xs text-charcoal-light mt-1">Manage Ganeshotsava auction items, winners, final bids, and payments.</p>
                 </Link>
 
+                <Link
+                  to="/admin/custom-events"
+                  className="bg-white rounded-xl border border-warm-dark p-5 hover:border-accent transition group"
+                >
+                  <Sparkles className="h-8 w-8 text-accent-dark mb-3" />
+                  <h3 className="font-bold text-charcoal group-hover:text-accent-dark transition">
+                    Special Registrations (ವಿಶೇಷ ನೋಂದಣಿ)
+                  </h3>
+                  <p className="text-xs text-charcoal-light mt-1">
+                    Create dynamic registration drives, set public/admin permissions, manage rosters, and export PDF.
+                  </p>
+                </Link>
+
                 {isSuperAdmin && (
                   <Link
                     to="/admin/users"

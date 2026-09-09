@@ -546,3 +546,248 @@ export const exportTshirtToPdf = async (
     }
   });
 };
+
+export interface ExportCustomEventPdfOptions {
+  filenamePrefix?: string;
+  stats?: {
+    totalRegistrations: number;
+    totalQuantity: number;
+    categoryBreakdown: Record<string, number>;
+  };
+}
+
+/**
+ * Generates and downloads an A4 Vertical (Portrait) vector PDF for any Dynamic Custom Event registration list
+ */
+export const exportCustomEventToPdf = async (
+  event: any,
+  registrations: any[],
+  language: string,
+  options?: ExportCustomEventPdfOptions
+): Promise<void> => {
+  const fontResponse = await fetch('/fonts/NirmalaUI.ttf');
+  if (!fontResponse.ok) {
+    throw new Error('Failed to load Kannada Unicode font for PDF generation.');
+  }
+  const fontBuffer = await fontResponse.arrayBuffer();
+
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new (PDFDocument as any)({
+        layout: 'portrait',
+        size: 'A4',
+        margin: 28,
+        bufferPages: true,
+        font: fontBuffer,
+      });
+
+      const chunks: any[] = [];
+      doc.on('data', (chunk: any) => chunks.push(chunk));
+      doc.on('end', () => {
+        try {
+          const blob = new Blob(chunks, { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          const dateStr = new Date().toISOString().split('T')[0];
+          link.setAttribute(
+            'download',
+            `${options?.filenamePrefix || event.slug || 'event_registrations'}_${dateStr}.pdf`
+          );
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
+
+      doc.registerFont('Nirmala', fontBuffer);
+      doc.font('Nirmala');
+
+      const pageWidth = 595.28;
+      const pageHeight = 841.89;
+      const margin = 28;
+      const contentWidth = pageWidth - margin * 2; // 539.28
+
+      const cols = [
+        { header: 'ಕ್ರ.ಸಂ\n(SL)', width: 34, align: 'center' as const },
+        { header: 'ಭಾಗವಹಿಸುವವರ ಹೆಸರು\n(PARTICIPANT NAME)', width: 170, align: 'left' as const },
+        { header: 'ವರ್ಗ / ವಿವರ\n(CATEGORY / OPTION)', width: 110, align: 'left' as const },
+        { header: 'ಮನೆತನ / ವಿಳಾಸ\n(HOME / ADDRESS)', width: 100, align: 'left' as const },
+        { header: 'ಮೊಬೈಲ್ / ಸಂಖ್ಯೆ\n(PHONE / QTY)', width: 60, align: 'center' as const },
+        { header: 'ಸಹಿ / ಷರಾ\n(SIGNATURE)', width: 65.28, align: 'center' as const },
+      ];
+
+      let y = margin;
+      const currentYear = event.year || '2026';
+      const stats = options?.stats;
+
+      const drawHeader = (isFirstPage: boolean) => {
+        if (isFirstPage) {
+          doc.fillColor('#7A1C1C').fontSize(14).text(
+            'ಗಣೇಶೋತ್ಸವ ಸಮಿತಿ, ಕೆಳಗಿನೂರು, ನಾಜಗಾರ ಕ್ರಾಸ್',
+            margin,
+            y,
+            { align: 'center', width: contentWidth }
+          );
+          y += 18;
+
+          const eventHeaderTitle = `${event.titleKannada || event.title} - ${currentYear}`;
+          doc.fillColor('#1F2937').fontSize(11).text(
+            `${eventHeaderTitle} - ನೋಂದಾಯಿತ ಪಟ್ಟಿ (Registration Roster)`,
+            margin,
+            y,
+            { align: 'center', width: contentWidth }
+          );
+          y += 16;
+
+          // Stats / Summary Box if stats are provided
+          if (stats && Object.keys(stats.categoryBreakdown || {}).length > 0) {
+            const summaryH = 22;
+            doc.roundedRect(margin, y, contentWidth, summaryH, 4).fillAndStroke('#FEF3C7', '#F59E0B');
+
+            const breakdownEntries = Object.entries(stats.categoryBreakdown)
+              .map(([cat, count]) => `${cat}: ${count}`)
+              .join('   |   ');
+
+            const summaryText = `ಒಟ್ಟು (TOTAL): ${stats.totalRegistrations}    |    ${breakdownEntries}`;
+
+            doc.fillColor('#78350F').fontSize(8).text(
+              summaryText,
+              margin,
+              y + 6,
+              { align: 'center', width: contentWidth }
+            );
+            y += summaryH + 8;
+          } else {
+            y += 4;
+          }
+        } else {
+          doc.fillColor('#7A1C1C').fontSize(9.5).text(
+            `${event.titleKannada || event.title} - ನೋಂದಾಯಿತ ಪಟ್ಟಿ (${currentYear})`,
+            margin,
+            y,
+            { align: 'left', width: contentWidth }
+          );
+          y += 14;
+        }
+
+        // Table Header
+        const headerHeight = 26;
+        doc.rect(margin, y, contentWidth, headerHeight).fill('#7A1C1C');
+
+        let curX = margin;
+        cols.forEach((col) => {
+          doc.fillColor('#FFFFFF').fontSize(8).text(
+            col.header,
+            curX,
+            y + 4,
+            { width: col.width, align: col.align }
+          );
+          curX += col.width;
+        });
+
+        y += headerHeight;
+      };
+
+      drawHeader(true);
+
+      const rowHeight = 22;
+      const bottomLimit = pageHeight - margin - 20;
+
+      registrations.forEach((r, index) => {
+        if (y + rowHeight > bottomLimit) {
+          doc.addPage();
+          y = margin;
+          drawHeader(false);
+        }
+
+        const isEven = index % 2 === 0;
+        const rowBg = isEven ? '#FFFFFF' : '#F9FAFB';
+        doc.rect(margin, y, contentWidth, rowHeight).fill(rowBg);
+
+        // Bottom border
+        doc.strokeColor('#E5E7EB').lineWidth(0.5)
+          .moveTo(margin, y + rowHeight)
+          .lineTo(margin + contentWidth, y + rowHeight)
+          .stroke();
+
+        let curX = margin;
+
+        // 1. SL NO
+        doc.fillColor('#4B5563').fontSize(8.5).text(
+          String(index + 1),
+          curX,
+          y + 6,
+          { width: cols[0].width, align: cols[0].align }
+        );
+        curX += cols[0].width;
+
+        // 2. PARTICIPANT NAME
+        doc.fillColor('#111827').fontSize(9).text(
+          r.name || '-',
+          curX + 4,
+          y + 5.5,
+          { width: cols[1].width - 8, align: cols[1].align, lineBreak: false, ellipsis: true }
+        );
+        curX += cols[1].width;
+
+        // 3. CATEGORY / OPTION
+        doc.fillColor('#374151').fontSize(8.5).text(
+          r.category || '-',
+          curX + 4,
+          y + 6,
+          { width: cols[2].width - 8, align: cols[2].align, lineBreak: false, ellipsis: true }
+        );
+        curX += cols[2].width;
+
+        // 4. HOME / ADDRESS
+        doc.fillColor('#4B5563').fontSize(8.5).text(
+          r.homeName || '-',
+          curX + 4,
+          y + 6,
+          { width: cols[3].width - 8, align: cols[3].align, lineBreak: false, ellipsis: true }
+        );
+        curX += cols[3].width;
+
+        // 5. PHONE / QTY
+        const phoneOrQty = r.phone || (r.quantity && r.quantity > 1 ? `Qty: ${r.quantity}` : '1');
+        doc.fillColor('#111827').fontSize(8.5).text(
+          phoneOrQty,
+          curX,
+          y + 6,
+          { width: cols[4].width, align: cols[4].align, lineBreak: false, ellipsis: true }
+        );
+        curX += cols[4].width;
+
+        // 6. SIGNATURE / RECEIVED
+        doc.strokeColor('#D1D5DB').lineWidth(0.5)
+          .moveTo(curX + 6, y + rowHeight - 6)
+          .lineTo(curX + cols[5].width - 6, y + rowHeight - 6)
+          .stroke();
+
+        y += rowHeight;
+      });
+
+      // Page Footers across all pages
+      const range = doc.bufferedPageRange();
+      for (let i = range.start; i < range.start + range.count; i++) {
+        doc.switchToPage(i);
+        doc.fillColor('#9CA3AF').fontSize(7.5).text(
+          `Page ${i + 1} of ${range.count}  |  Ganeshotsava Samiti Kelaginuru Najagara Cross  |  ${event.title}`,
+          margin,
+          pageHeight - 20,
+          { align: 'center', width: contentWidth }
+        );
+      }
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+

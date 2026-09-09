@@ -19,13 +19,13 @@ export interface ExportKathePdfOptions {
 }
 
 /**
- * Generates and downloads an A4 Landscape vector PDF of Kathe registered devotees.
+ * Generates and downloads an A4 Vertical (Portrait) vector PDF of Kathe registered devotees.
  * 
  * Key Features:
  * - Native OpenType Kannada shaping using Nirmala UI font embedded in the PDF.
  * - Displays complex characters properly (e.g. ನಾಜಗಾರ, ಕಡೇ, ಕರ್ಕಿ, ಭಟ್, ರ್ಗ, ಷ್ಟ).
  * - Not an image: Searchable, selectable, and 100% vector Unicode text.
- * - Print-ready: A4 Landscape with table borders, zebra striping, repeated headers, and page numbers.
+ * - Print-ready: A4 Portrait with table borders, zebra striping, repeated headers, and page numbers.
  */
 export const exportKatheToPdf = async (
   participants: any[],
@@ -42,9 +42,9 @@ export const exportKatheToPdf = async (
   return new Promise((resolve, reject) => {
     try {
       const doc = new (PDFDocument as any)({
-        layout: 'landscape',
+        layout: 'portrait',
         size: 'A4',
-        margin: 36,
+        margin: 28,
         bufferPages: true,
         font: fontBuffer
       });
@@ -76,18 +76,18 @@ export const exportKatheToPdf = async (
       doc.registerFont('Nirmala', fontBuffer);
       doc.font('Nirmala');
 
-      const pageWidth = 841.89;
-      const pageHeight = 595.28;
-      const margin = 36;
-      const contentWidth = pageWidth - margin * 2; // 769.89
+      const pageWidth = 595.28;
+      const pageHeight = 841.89;
+      const margin = 28;
+      const contentWidth = pageWidth - margin * 2; // 539.28
 
       const cols = [
-        { header: 'ಕ್ರಮ ಸಂಖ್ಯೆ\n(SL NO)', width: 55, align: 'center' as const },
-        { header: 'ಭಕ್ತರ ಹೆಸರು\n(DEVOTEE NAME)', width: 230, align: 'left' as const },
-        { header: 'ಸ್ಥಳ / ಪ್ರದೇಶ\n(PLACE / AREA)', width: 155, align: 'left' as const },
-        { header: 'ಪುಸ್ತಕ ಸಂಖ್ಯೆ\n(BOOK NO)', width: 105, align: 'center' as const },
-        { header: 'ವರ್ಷ\n(YEAR)', width: 65, align: 'center' as const },
-        { header: 'ಸಂಕಲ್ಪ ಸ್ಥಿತಿ\n(STATUS)', width: 159.89, align: 'center' as const }
+        { header: 'ಕ್ರ.ಸಂ\n(SL)', width: 34, align: 'center' as const },
+        { header: 'ಭಕ್ತರ ಹೆಸರು\n(DEVOTEE NAME)', width: 170, align: 'left' as const },
+        { header: 'ಸ್ಥಳ / ಪ್ರದೇಶ\n(PLACE / AREA)', width: 110, align: 'left' as const },
+        { header: 'ಪುಸ್ತಕ ಸಂಖ್ಯೆ\n(BOOK NO)', width: 65, align: 'center' as const },
+        { header: 'ವರ್ಷ\n(YEAR)', width: 45, align: 'center' as const },
+        { header: 'ಸಂಕಲ್ಪ ಸ್ಥಿತಿ\n(STATUS)', width: 115.28, align: 'center' as const }
       ];
 
       let y = margin;
@@ -96,21 +96,21 @@ export const exportKatheToPdf = async (
       const drawHeader = (isFirstPage: boolean) => {
         if (isFirstPage) {
           // Document Header / Title
-          doc.fillColor('#7A1C1C').fontSize(16).text(
+          doc.fillColor('#7A1C1C').fontSize(14).text(
             'ಶ್ರೀ ಸತ್ಯಗಣಪತಿ ವ್ರತ - ನೋಂದಾಯಿತ ಭಕ್ತರ ಪಟ್ಟಿ',
             margin,
             y,
             { align: 'center', width: contentWidth }
           );
-          y += 22;
+          y += 18;
 
-          doc.fillColor('#4B5563').fontSize(10).text(
+          doc.fillColor('#4B5563').fontSize(9.5).text(
             `Registered Devotees - Satya Ganapati Vrata ${currentYear} | ಶ್ರೀ ಗಣೇಶೋತ್ಸವ ಸೇವಾ ಸಮಿತಿ, ನಾಜಗಾರ`,
             margin,
             y,
             { align: 'center', width: contentWidth }
           );
-          y += 18;
+          y += 15;
 
           const now = new Date();
           const dateStrFormatted = now.toLocaleDateString('en-IN', {
@@ -123,24 +123,32 @@ export const exportKatheToPdf = async (
             minute: '2-digit'
           });
 
-          doc.fillColor('#6B7280').fontSize(8).text(
+          doc.fillColor('#6B7280').fontSize(7.5).text(
             `Generation Date: ${dateStrFormatted} ${timeStr}  |  Total Devotees: ${participants.length}`,
             margin,
             y,
             { align: 'right', width: contentWidth }
           );
+          y += 12;
+        } else {
+          doc.fillColor('#7A1C1C').fontSize(9.5).text(
+            `ಶ್ರೀ ಸತ್ಯಗಣಪತಿ ವ್ರತ - ನೋಂದಾಯಿತ ಭಕ್ತರ ಪಟ್ಟಿ (${currentYear})`,
+            margin,
+            y,
+            { align: 'left', width: contentWidth }
+          );
           y += 14;
         }
 
         // Table Column Headers
-        const headerHeight = 28;
+        const headerHeight = 26;
         doc.rect(margin, y, contentWidth, headerHeight).fill('#7A1C1C');
-        doc.fillColor('#FFFFFF').fontSize(8.5);
+        doc.fillColor('#FFFFFF').fontSize(8);
 
         let curX = margin;
         for (const col of cols) {
-          doc.text(col.header, curX + 4, y + 4, {
-            width: col.width - 8,
+          doc.text(col.header, curX + 2, y + 4, {
+            width: col.width - 4,
             align: col.align
           });
           curX += col.width;
@@ -153,10 +161,10 @@ export const exportKatheToPdf = async (
       // Render Participant Rows
       participants.forEach((p, idx) => {
         const hasFamily = Boolean(p.homeName);
-        const rowHeight = hasFamily ? 32 : 24;
+        const rowHeight = hasFamily ? 26 : 20;
 
         // Check if row exceeds printable height -> trigger automatic page break
-        if (y + rowHeight > pageHeight - margin - 28) {
+        if (y + rowHeight > pageHeight - margin - 20) {
           doc.addPage();
           y = margin;
           drawHeader(false);
@@ -173,28 +181,28 @@ export const exportKatheToPdf = async (
         let curX = margin;
 
         // 1. SL NO
-        doc.fillColor('#374151').fontSize(9).text(
+        doc.fillColor('#374151').fontSize(8.5).text(
           String(idx + 1),
-          curX + 4,
-          y + (rowHeight - 12) / 2,
-          { width: cols[0].width - 8, align: cols[0].align }
+          curX,
+          y + (rowHeight - 11) / 2,
+          { width: cols[0].width, align: cols[0].align }
         );
         curX += cols[0].width;
 
         // 2. DEVOTEE NAME + FAMILY
-        const nameY = hasFamily ? y + 4 : y + (rowHeight - 12) / 2;
-        doc.fillColor('#111827').fontSize(9).text(
+        const nameY = hasFamily ? y + 3 : y + (rowHeight - 11) / 2;
+        doc.fillColor('#111827').fontSize(8.5).text(
           `${p.firstName || ''} ${p.lastName || ''}`.trim(),
-          curX + 6,
+          curX + 4,
           nameY,
-          { width: cols[1].width - 12, align: cols[1].align }
+          { width: cols[1].width - 8, align: cols[1].align, lineBreak: false, ellipsis: true }
         );
         if (hasFamily) {
-          doc.fillColor('#6B7280').fontSize(8).text(
-            `Family: ${p.homeName}`,
-            curX + 6,
-            y + 17,
-            { width: cols[1].width - 12, align: cols[1].align }
+          doc.fillColor('#6B7280').fontSize(7.5).text(
+            `ಮನೆತನ: ${p.homeName}`,
+            curX + 4,
+            y + 14,
+            { width: cols[1].width - 8, align: cols[1].align, lineBreak: false, ellipsis: true }
           );
         }
         curX += cols[1].width;
@@ -207,29 +215,29 @@ export const exportKatheToPdf = async (
           placeText = String(p.place);
         }
 
-        doc.fillColor('#374151').fontSize(9).text(
+        doc.fillColor('#374151').fontSize(8.5).text(
           placeText,
-          curX + 6,
-          y + (rowHeight - 12) / 2,
-          { width: cols[2].width - 12, align: cols[2].align }
+          curX + 4,
+          y + (rowHeight - 11) / 2,
+          { width: cols[2].width - 8, align: cols[2].align, lineBreak: false, ellipsis: true }
         );
         curX += cols[2].width;
 
         // 4. BOOK NUMBER
-        doc.fillColor('#111827').fontSize(9).text(
+        doc.fillColor('#111827').fontSize(8.5).text(
           p.bookNo || p.notes || '-',
-          curX + 4,
-          y + (rowHeight - 12) / 2,
-          { width: cols[3].width - 8, align: cols[3].align }
+          curX + 2,
+          y + (rowHeight - 11) / 2,
+          { width: cols[3].width - 4, align: cols[3].align, lineBreak: false, ellipsis: true }
         );
         curX += cols[3].width;
 
         // 5. YEAR
-        doc.fillColor('#374151').fontSize(9).text(
+        doc.fillColor('#374151').fontSize(8.5).text(
           p.year || currentYear,
-          curX + 4,
-          y + (rowHeight - 12) / 2,
-          { width: cols[4].width - 8, align: cols[4].align }
+          curX + 2,
+          y + (rowHeight - 11) / 2,
+          { width: cols[4].width - 4, align: cols[4].align }
         );
         curX += cols[4].width;
 
@@ -237,18 +245,18 @@ export const exportKatheToPdf = async (
         const isConfirmed = p.confirmed || p.registrationStatus === 'CONFIRMED';
         const statusColor = isConfirmed ? '#065F46' : '#92400E';
         const statusBg = isConfirmed ? '#D1FAE5' : '#FEF3C7';
-        const statusText = isConfirmed ? 'CONFIRMED (ದೃಢೀಕರಿಸಲಾಗಿದೆ)' : 'PENDING (ಬಾಕಿ ಇದೆ)';
+        const statusText = isConfirmed ? 'ದೃಢೀಕರಿಸಲಾಗಿದೆ (CONFIRMED)' : 'ಬಾಕಿ (PENDING)';
 
-        const badgeW = cols[5].width - 16;
-        const badgeH = 16;
-        const badgeX = curX + 8;
+        const badgeW = cols[5].width - 12;
+        const badgeH = 14;
+        const badgeX = curX + 6;
         const badgeY = y + (rowHeight - badgeH) / 2;
 
         doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 3).fill(statusBg);
-        doc.fillColor(statusColor).fontSize(7.5).text(
+        doc.fillColor(statusColor).fontSize(7).text(
           statusText,
           badgeX,
-          badgeY + 4,
+          badgeY + 3,
           { width: badgeW, align: 'center' }
         );
 
@@ -259,10 +267,10 @@ export const exportKatheToPdf = async (
       const range = doc.bufferedPageRange();
       for (let i = range.start; i < range.start + range.count; i++) {
         doc.switchToPage(i);
-        doc.fillColor('#9CA3AF').fontSize(8).text(
+        doc.fillColor('#9CA3AF').fontSize(7.5).text(
           `Page ${i + 1} of ${range.count}  |  Sri Satya Ganapati Vrata - Najagara Ganeshotsava`,
           margin,
-          pageHeight - 24,
+          pageHeight - 20,
           { align: 'center', width: contentWidth }
         );
       }

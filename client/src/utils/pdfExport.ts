@@ -411,7 +411,68 @@ export interface ExportTshirtPdfOptions {
 }
 
 /**
- * Generates and downloads an A4 Landscape vector PDF of Member T-Shirt Distribution Roster
+ * Helper to determine member category rank for T-shirt ordering:
+ * 1: Senior Member (ಹಿರಿಯ ಸದಸ್ಯರು)
+ * 2: Member / Committee Member (ಸದಸ್ಯರು / ಸಮಿತಿ ಸದಸ್ಯರು)
+ * 3: Junior Member (ಕಿರಿಯ ಸದಸ್ಯರು)
+ * 4: Other Member / Devotee (ಇತರೆ ಸದಸ್ಯರು / ಭಕ್ತಾದಿಗಳು)
+ */
+export function getMemberTierRank(type?: string): number {
+  if (!type) return 4;
+  const t = type.toLowerCase().trim();
+  if (t.includes('senior') || t.includes('ಹಿರಿಯ')) return 1;
+  if (t.includes('junior') || t.includes('ಕಿರಿಯ')) return 3;
+  if (t.includes('committee') || t.includes('ಸಮಿತಿ')) return 2;
+  if (t.includes('member') || t.includes('ಸದಸ್ಯ')) {
+    if (t.includes('ಇತರೆ') || t.includes('other')) return 4;
+    return 2;
+  }
+  return 4;
+}
+
+/**
+ * Extracts devotee or member full name for sorting and display
+ */
+export function getOrderDevoteeName(order: any): string {
+  if (order.name && typeof order.name === 'string' && order.name.trim()) {
+    return order.name.trim();
+  }
+  if (order.member) {
+    const fn = order.member.firstName || '';
+    const ln = order.member.lastName || '';
+    const full = `${fn} ${ln}`.trim();
+    if (full) return full;
+  }
+  return '';
+}
+
+/**
+ * Sorts T-shirt orders by:
+ * 1. Tier Rank: Senior Member (1) -> Member (2) -> Junior Member (3) -> Other Member (4)
+ * 2. Kannada Alphabetical Order (ಅ, ಆ, ಇ... ಕ, ಖ... ಸ, ಹ, ಳ)
+ * 3. Home Name (tie-breaker)
+ */
+export function compareTshirtOrders(a: any, b: any): number {
+  const rankA = getMemberTierRank(a.memberType || a.member?.memberType);
+  const rankB = getMemberTierRank(b.memberType || b.member?.memberType);
+  if (rankA !== rankB) {
+    return rankA - rankB;
+  }
+
+  const nameA = getOrderDevoteeName(a);
+  const nameB = getOrderDevoteeName(b);
+  const cmp = nameA.localeCompare(nameB, 'kn', { sensitivity: 'base', numeric: true });
+  if (cmp !== 0) return cmp;
+
+  const homeA = a.homeName || a.member?.homeName || '';
+  const homeB = b.homeName || b.member?.homeName || '';
+  return homeA.localeCompare(homeB, 'kn', { sensitivity: 'base' });
+}
+
+/**
+ * Generates and downloads an A4 Vertical vector PDF of Member T-Shirt Distribution Roster
+ * Grouped into 4 tiers: Senior Member, Member, Junior Member, Other Member
+ * Sorted in Kannada alphabetical order within each tier.
  */
 export const exportTshirtToPdf = async (
   orders: any[],
@@ -475,9 +536,85 @@ export const exportTshirtToPdf = async (
         { header: 'ಸ್ವೀಕರಿಸಿದ ಸಹಿ\n(SIGNATURE / RECEIVED)', width: 98.28, align: 'center' as const },
       ];
 
+      // Prepare Tier Groups
+      const tierConfigs = [
+        {
+          rank: 1,
+          titleKn: '⭐ ಹಿರಿಯ ಸದಸ್ಯರು',
+          titleEn: 'SENIOR MEMBERS',
+          bgFill: '#FEF3C7',
+          textColor: '#78350F',
+          borderColor: '#F59E0B',
+        },
+        {
+          rank: 2,
+          titleKn: '👥 ಸದಸ್ಯರು / ಸಮಿತಿ ಸದಸ್ಯರು',
+          titleEn: 'MEMBERS & COMMITTEE',
+          bgFill: '#EFF6FF',
+          textColor: '#1E3A8A',
+          borderColor: '#3B82F6',
+        },
+        {
+          rank: 3,
+          titleKn: '🌱 ಕಿರಿಯ ಸದಸ್ಯರು',
+          titleEn: 'JUNIOR MEMBERS',
+          bgFill: '#ECFDF5',
+          textColor: '#065F46',
+          borderColor: '#10B981',
+        },
+        {
+          rank: 4,
+          titleKn: '✨ ಇತರೆ ಸದಸ್ಯರು / ಭಕ್ತಾದಿಗಳು',
+          titleEn: 'OTHER MEMBERS & DEVOTEES',
+          bgFill: '#F5F3FF',
+          textColor: '#5B21B6',
+          borderColor: '#8B5CF6',
+        },
+      ];
+
+      // Group orders and sort each group in Kannada alphabetical order
+      const groups = tierConfigs
+        .map((cfg) => {
+          const items = orders.filter(
+            (o) => getMemberTierRank(o.memberType || o.member?.memberType) === cfg.rank
+          );
+          items.sort((a, b) => {
+            const nameA = getOrderDevoteeName(a);
+            const nameB = getOrderDevoteeName(b);
+            const cmp = nameA.localeCompare(nameB, 'kn', { sensitivity: 'base', numeric: true });
+            if (cmp !== 0) return cmp;
+            const homeA = a.homeName || a.member?.homeName || '';
+            const homeB = b.homeName || b.member?.homeName || '';
+            return homeA.localeCompare(homeB, 'kn', { sensitivity: 'base' });
+          });
+          return {
+            ...cfg,
+            items,
+          };
+        })
+        .filter((g) => g.items.length > 0);
+
+      // Compute summary stats
+      const totalMembers = orders.length;
+      let totalQty = 0;
+      const sizeBreakdown: Record<string, number> = { S: 0, M: 0, L: 0, XL: 0, XXL: 0, '3XL': 0 };
+      const tierCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
+
+      orders.forEach((o) => {
+        const q = Math.max(1, Number(o.quantity) || 1);
+        totalQty += q;
+        const s = o.size as string;
+        if (sizeBreakdown[s] !== undefined) {
+          sizeBreakdown[s] = (sizeBreakdown[s] || 0) + q;
+        }
+        const r = getMemberTierRank(o.memberType || o.member?.memberType);
+        if (tierCounts[r] !== undefined) {
+          tierCounts[r] += 1;
+        }
+      });
+
       let y = margin;
       const currentYear = options?.year || '2026';
-      const stats = options?.stats;
 
       const drawHeader = (isFirstPage: boolean) => {
         if (isFirstPage) {
@@ -498,24 +635,26 @@ export const exportTshirtToPdf = async (
           );
           y += 16;
 
-          // Stats / Summary Box if stats are provided
-          if (stats) {
-            const summaryH = 22;
-            doc.roundedRect(margin, y, contentWidth, summaryH, 4).fillAndStroke('#FEF3C7', '#F59E0B');
+          // Stats / Summary Box
+          const summaryH = 26;
+          doc.roundedRect(margin, y, contentWidth, summaryH, 4).fillAndStroke('#FEF3C7', '#F59E0B');
 
-            const b = stats.breakdown || {};
-            const summaryText = `ಒಟ್ಟು (TOTAL): ${stats.total || orders.length}   |   S: ${b['S'] || 0}   M: ${b['M'] || 0}   L: ${b['L'] || 0}   XL: ${b['XL'] || 0}   XXL: ${b['XXL'] || 0}   3XL: ${b['3XL'] || 0}`;
+          const line1 = `ಒಟ್ಟು ಸದಸ್ಯರು: ${totalMembers}   |   ಒಟ್ಟು ಟಿ-ಶರ್ಟ್‌ಗಳು: ${totalQty}   (ಹಿರಿಯ: ${tierCounts[1]}, ಸದಸ್ಯರು: ${tierCounts[2]}, ಕಿರಿಯ: ${tierCounts[3]}, ಇತರೆ: ${tierCounts[4]})`;
+          const line2 = `ಅಳತೆ ವಿವರ (Sizes): S: ${sizeBreakdown['S'] || 0}   M: ${sizeBreakdown['M'] || 0}   L: ${sizeBreakdown['L'] || 0}   XL: ${sizeBreakdown['XL'] || 0}   XXL: ${sizeBreakdown['XXL'] || 0}   3XL: ${sizeBreakdown['3XL'] || 0}`;
 
-            doc.fillColor('#78350F').fontSize(8.5).text(
-              summaryText,
-              margin,
-              y + 5.5,
-              { align: 'center', width: contentWidth }
-            );
-            y += summaryH + 8;
-          } else {
-            y += 4;
-          }
+          doc.fillColor('#78350F').fontSize(8.5).text(
+            line1,
+            margin,
+            y + 4.5,
+            { align: 'center', width: contentWidth }
+          );
+          doc.fillColor('#92400E').fontSize(8).text(
+            line2,
+            margin,
+            y + 14.5,
+            { align: 'center', width: contentWidth }
+          );
+          y += summaryH + 8;
         } else {
           doc.fillColor('#7A1C1C').fontSize(9.5).text(
             `ಗಣೇಶೋತ್ಸವ ಸಮಿತಿ - ಸದಸ್ಯರ ಟಿ-ಶರ್ಟ್ ವಿತರಣಾ ಪಟ್ಟಿ (${currentYear})`,
@@ -546,106 +685,160 @@ export const exportTshirtToPdf = async (
 
       drawHeader(true);
 
+      const bannerH = 19;
       const rowHeight = 22;
-      const bottomLimit = pageHeight - margin - 20;
+      const bottomLimit = pageHeight - margin - 22;
+      let globalIndex = 0;
 
-      orders.forEach((o, index) => {
-        if (y + rowHeight > bottomLimit) {
+      groups.forEach((group) => {
+        // Page break check before printing tier section ribbon
+        if (y + bannerH + rowHeight > bottomLimit) {
           doc.addPage();
           y = margin;
           drawHeader(false);
         }
 
-        const isEven = index % 2 === 0;
-        const rowBg = isEven ? '#FFFFFF' : '#F9FAFB';
-        doc.rect(margin, y, contentWidth, rowHeight).fill(rowBg);
+        // Render Tier Banner
+        doc.rect(margin, y, contentWidth, bannerH).fillAndStroke(group.bgFill, group.borderColor);
 
-        // Bottom border
-        doc.strokeColor('#E5E7EB').lineWidth(0.5)
-          .moveTo(margin, y + rowHeight)
-          .lineTo(margin + contentWidth, y + rowHeight)
-          .stroke();
-
-        let curX = margin;
-
-        // 1. SL NO
-        doc.fillColor('#4B5563').fontSize(8.5).text(
-          String(index + 1),
-          curX,
-          y + 6,
-          { width: cols[0].width, align: cols[0].align }
+        doc.fillColor(group.textColor).fontSize(9).text(
+          `${group.titleKn} (${group.titleEn})`,
+          margin + 8,
+          y + 4.5,
+          { width: contentWidth - 170, align: 'left' }
         );
-        curX += cols[0].width;
 
-        // 2. NAME
-        const memberName = o.name || (o.member ? `${o.member.firstName || ''} ${o.member.lastName || ''}`.trim() : '-');
-        doc.fillColor('#111827').fontSize(9).text(
-          memberName,
-          curX + 4,
-          y + 5.5,
-          { width: cols[1].width - 8, align: cols[1].align, lineBreak: false, ellipsis: true }
+        const groupQty = group.items.reduce(
+          (sum: number, it: any) => sum + (Math.max(1, Number(it.quantity) || 1)),
+          0
         );
-        curX += cols[1].width;
-
-        // 3. CATEGORY / MEMBER TYPE
-        let catText = o.memberType || o.member?.memberType || 'Other';
-        if (catText === 'Member') catText = 'ಸದಸ್ಯರು';
-        else if (catText === 'Junior Member') catText = 'ಕಿರಿಯರು';
-        else if (catText === 'Senior Member') catText = 'ಹಿರಿಯರು';
-        else if (catText === 'Committee Member') catText = 'ಸಮಿತಿ';
-        else if (catText === 'Other') catText = 'ಇತರೆ';
-
-        doc.fillColor('#374151').fontSize(8).text(
-          catText,
-          curX + 2,
-          y + 6,
-          { width: cols[2].width - 4, align: cols[2].align }
+        doc.fillColor(group.textColor).fontSize(8).text(
+          `ಸದಸ್ಯರು: ${group.items.length}  |  ಟಿ-ಶರ್ಟ್: ${groupQty}`,
+          margin + contentWidth - 160,
+          y + 5,
+          { width: 152, align: 'right' }
         );
-        curX += cols[2].width;
 
-        // 4. HOME / FAMILY
-        const homeText = o.homeName || o.member?.homeName || '-';
-        doc.fillColor('#4B5563').fontSize(8.5).text(
-          homeText,
-          curX + 4,
-          y + 6,
-          { width: cols[3].width - 8, align: cols[3].align, lineBreak: false, ellipsis: true }
-        );
-        curX += cols[3].width;
+        y += bannerH;
 
-        // 5. SIZE (Prominent Badge)
-        const sizeW = 28;
-        const sizeH = 14;
-        const sizeX = curX + (cols[4].width - sizeW) / 2;
-        const sizeY = y + 4;
+        // Render Tier Rows
+        group.items.forEach((o: any, idx: number) => {
+          if (y + rowHeight > bottomLimit) {
+            doc.addPage();
+            y = margin;
+            drawHeader(false);
+          }
 
-        doc.roundedRect(sizeX, sizeY, sizeW, sizeH, 3).fill('#DBEAFE');
-        doc.fillColor('#1E40AF').fontSize(8.5).text(
-          o.size || '-',
-          sizeX,
-          sizeY + 2.5,
-          { width: sizeW, align: 'center' }
-        );
-        curX += cols[4].width;
+          globalIndex++;
+          const isEven = idx % 2 === 0;
+          const rowBg = isEven ? '#FFFFFF' : '#F9FAFB';
+          doc.rect(margin, y, contentWidth, rowHeight).fill(rowBg);
 
-        // 6. QUANTITY
-        const qty = o.quantity || 1;
-        doc.fillColor('#111827').fontSize(9).text(
-          String(qty),
-          curX,
-          y + 6,
-          { width: cols[5].width, align: cols[5].align }
-        );
-        curX += cols[5].width;
+          // Row bottom separator line
+          doc.strokeColor('#E5E7EB').lineWidth(0.5)
+            .moveTo(margin, y + rowHeight)
+            .lineTo(margin + contentWidth, y + rowHeight)
+            .stroke();
 
-        // 7. SIGNATURE / RECEIVED (Empty box with subtle dotted line)
-        doc.strokeColor('#D1D5DB').lineWidth(0.5)
-          .moveTo(curX + 8, y + rowHeight - 6)
-          .lineTo(curX + cols[6].width - 8, y + rowHeight - 6)
-          .stroke();
+          let curX = margin;
 
-        y += rowHeight;
+          // 1. SL NO
+          doc.fillColor('#4B5563').fontSize(8.5).text(
+            String(globalIndex),
+            curX,
+            y + 6,
+            { width: cols[0].width, align: cols[0].align }
+          );
+          curX += cols[0].width;
+
+          // 2. DEVOTEE / MEMBER NAME
+          const memberName = getOrderDevoteeName(o) || '-';
+          doc.fillColor('#111827').fontSize(9).text(
+            memberName,
+            curX + 4,
+            y + 5.5,
+            { width: cols[1].width - 8, align: cols[1].align, lineBreak: false, ellipsis: true }
+          );
+          curX += cols[1].width;
+
+          // 3. CATEGORY BADGE
+          let catText = o.memberType || o.member?.memberType || 'Other';
+          if (catText.includes('Senior') || catText.includes('ಹಿರಿಯ')) catText = 'ಹಿರಿಯರು';
+          else if (catText.includes('Junior') || catText.includes('ಕಿರಿಯ')) catText = 'ಕಿರಿಯರು';
+          else if (catText === 'Committee Member' || catText.includes('ಸಮಿತಿ')) catText = 'ಸಮಿತಿ';
+          else if (catText === 'Member' || catText.includes('ಸದಸ್ಯ')) catText = 'ಸದಸ್ಯರು';
+          else catText = 'ಇತರೆ';
+
+          doc.fillColor('#374151').fontSize(8).text(
+            catText,
+            curX + 2,
+            y + 6,
+            { width: cols[2].width - 4, align: cols[2].align }
+          );
+          curX += cols[2].width;
+
+          // 4. HOME / FAMILY
+          const homeText = o.homeName || o.member?.homeName || '-';
+          doc.fillColor('#4B5563').fontSize(8.5).text(
+            homeText,
+            curX + 4,
+            y + 6,
+            { width: cols[3].width - 8, align: cols[3].align, lineBreak: false, ellipsis: true }
+          );
+          curX += cols[3].width;
+
+          // 5. SIZE BADGE
+          const sizeW = 28;
+          const sizeH = 14;
+          const sizeX = curX + (cols[4].width - sizeW) / 2;
+          const sizeY = y + 4;
+
+          doc.roundedRect(sizeX, sizeY, sizeW, sizeH, 3).fill('#DBEAFE');
+          doc.fillColor('#1E40AF').fontSize(8.5).text(
+            o.size || '-',
+            sizeX,
+            sizeY + 2.5,
+            { width: sizeW, align: 'center' }
+          );
+          curX += cols[4].width;
+
+          // 6. QUANTITY
+          const qty = o.quantity || 1;
+          doc.fillColor('#111827').fontSize(9).text(
+            String(qty),
+            curX,
+            y + 6,
+            { width: cols[5].width, align: cols[5].align }
+          );
+          curX += cols[5].width;
+
+          // 7. SIGNATURE / RECEIVED (Subtle dotted line)
+          doc.strokeColor('#D1D5DB').lineWidth(0.5)
+            .moveTo(curX + 8, y + rowHeight - 6)
+            .lineTo(curX + cols[6].width - 8, y + rowHeight - 6)
+            .stroke();
+
+          y += rowHeight;
+        });
+
+        y += 4; // Spacing after each tier section
       });
+
+      // Committee verification signatures at end of document if space permits
+      if (y + 45 <= bottomLimit) {
+        y += 12;
+        const sigColW = contentWidth / 3;
+        doc.strokeColor('#9CA3AF').lineWidth(0.5);
+
+        doc.moveTo(margin + 20, y + 16).lineTo(margin + sigColW - 20, y + 16).stroke();
+        doc.fillColor('#6B7280').fontSize(7.5).text('ಅಧ್ಯಕ್ಷರು (President)', margin + 20, y + 19, { width: sigColW - 40, align: 'center' });
+
+        doc.moveTo(margin + sigColW + 20, y + 16).lineTo(margin + sigColW * 2 - 20, y + 16).stroke();
+        doc.fillColor('#6B7280').fontSize(7.5).text('ಕಾರ್ಯದರ್ಶಿ (Secretary)', margin + sigColW + 20, y + 19, { width: sigColW - 40, align: 'center' });
+
+        doc.moveTo(margin + sigColW * 2 + 20, y + 16).lineTo(margin + contentWidth - 20, y + 16).stroke();
+        doc.fillColor('#6B7280').fontSize(7.5).text('ಖಜಾಂಚಿ / ಸಂಯೋಜಕರು (Treasurer)', margin + sigColW * 2 + 20, y + 19, { width: sigColW - 40, align: 'center' });
+      }
 
       // Page Footers across all pages
       const range = doc.bufferedPageRange();

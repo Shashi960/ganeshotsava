@@ -3,7 +3,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
-import { exportTshirtToPdf } from '../utils/pdfExport';
+import { exportTshirtToPdf, getMemberTierRank, compareTshirtOrders } from '../utils/pdfExport';
 import {
   Shirt,
   Search,
@@ -63,6 +63,19 @@ const SIZES: Array<{ label: string; chest: string; key: 'S' | 'M' | 'L' | 'XL' |
   { label: 'XXL', chest: '44"', key: 'XXL' },
   { label: '3XL', chest: '46"', key: '3XL' },
 ];
+
+const formatCategory = (type: string | undefined, lang: string): string => {
+  const r = getMemberTierRank(type);
+  if (r === 1) return lang === 'kn' ? 'ಹಿರಿಯ ಸದಸ್ಯರು' : 'Senior Member';
+  if (r === 3) return lang === 'kn' ? 'ಕಿರಿಯ ಸದಸ್ಯರು' : 'Junior Member';
+  if (r === 2) {
+    if (type === 'Committee Member' || (type && type.toLowerCase().includes('committee'))) {
+      return lang === 'kn' ? 'ಸಮಿತಿ ಸದಸ್ಯರು' : 'Committee Member';
+    }
+    return lang === 'kn' ? 'ಸದಸ್ಯರು' : 'Member';
+  }
+  return lang === 'kn' ? 'ಇತರೆ' : 'Other';
+};
 
 export const TshirtView: React.FC = () => {
   const { language } = useLanguage();
@@ -155,9 +168,9 @@ export const TshirtView: React.FC = () => {
     }
   };
 
-  // Filtered available members
+  // Filtered available members sorted by Tier (Senior -> Member -> Junior) and Kannada alphabetical order
   const filteredAvailableMembers = useMemo(() => {
-    return availableMembers.filter((m) => {
+    const list = availableMembers.filter((m) => {
       const fullName = `${m.firstName || ''} ${m.lastName || ''}`.toLowerCase();
       const home = (m.homeName || '').toLowerCase();
       const s = memberSearch.toLowerCase();
@@ -169,11 +182,22 @@ export const TshirtView: React.FC = () => {
 
       return matchesSearch && matchesType;
     });
+
+    return [...list].sort((a, b) => {
+      const tierA = getMemberTierRank(a.memberType);
+      const tierB = getMemberTierRank(b.memberType);
+      if (tierA !== tierB) return tierA - tierB;
+      const nameA = `${a.firstName || ''} ${a.lastName || ''}`.trim();
+      const nameB = `${b.firstName || ''} ${b.lastName || ''}`.trim();
+      const cmp = nameA.localeCompare(nameB, 'kn', { sensitivity: 'base', numeric: true });
+      if (cmp !== 0) return cmp;
+      return (a.homeName || '').localeCompare(b.homeName || '', 'kn', { sensitivity: 'base' });
+    });
   }, [availableMembers, memberSearch, typeFilter]);
 
-  // Filtered recorded orders for table
+  // Filtered recorded orders for table sorted by Tier (Senior -> Member -> Junior -> Other) and Kannada alphabetical order
   const filteredOrders = useMemo(() => {
-    return orders.filter((o) => {
+    const filtered = orders.filter((o) => {
       const s = tableSearch.toLowerCase();
       const matchesSearch =
         (o.name || '').toLowerCase().includes(s) ||
@@ -183,6 +207,8 @@ export const TshirtView: React.FC = () => {
       const matchesSize = sizeFilter === 'ALL' || o.size === sizeFilter;
       return matchesSearch && matchesSize;
     });
+
+    return [...filtered].sort(compareTshirtOrders);
   }, [orders, tableSearch, sizeFilter]);
 
   const handleSelectMember = (memberId: string) => {
@@ -930,8 +956,16 @@ export const TshirtView: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2 text-xs text-charcoal-light">
-                      <span className="bg-warm px-2 py-0.5 rounded border border-warm-dark text-[10px] font-bold">
-                        {ord.memberType}
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                        getMemberTierRank(ord.memberType) === 1
+                          ? 'bg-amber-100 text-amber-900 border-amber-300'
+                          : getMemberTierRank(ord.memberType) === 2
+                          ? 'bg-blue-50 text-blue-900 border-blue-200'
+                          : getMemberTierRank(ord.memberType) === 3
+                          ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+                          : 'bg-purple-50 text-purple-900 border-purple-200'
+                      }`}>
+                        {formatCategory(ord.memberType, language)}
                       </span>
                       {ord.homeName && <span>{ord.homeName}</span>}
                     </div>
@@ -990,8 +1024,16 @@ export const TshirtView: React.FC = () => {
                       <td className="p-4 font-bold text-charcoal-light">{index + 1}</td>
                       <td className="p-4 font-extrabold text-charcoal">{ord.name}</td>
                       <td className="p-4">
-                        <span className="inline-block text-[11px] font-bold px-2 py-0.5 rounded bg-warm border border-warm-dark text-charcoal">
-                          {ord.memberType}
+                        <span className={`inline-block text-[11px] font-bold px-2.5 py-0.5 rounded border ${
+                          getMemberTierRank(ord.memberType) === 1
+                            ? 'bg-amber-100 text-amber-900 border-amber-300'
+                            : getMemberTierRank(ord.memberType) === 2
+                            ? 'bg-blue-50 text-blue-900 border-blue-200'
+                            : getMemberTierRank(ord.memberType) === 3
+                            ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+                            : 'bg-purple-50 text-purple-900 border-purple-200'
+                        }`}>
+                          {formatCategory(ord.memberType, language)}
                         </span>
                       </td>
                       <td className="p-4 text-charcoal-light font-medium">{ord.homeName || '-'}</td>

@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { exportKatheToExcel } from '../utils/excelExport';
-import { exportKatheToPdf } from '../utils/pdfExport';
+import { exportKatheToPdf, naturalCompareBookNo } from '../utils/pdfExport';
 import api from '../services/api';
 import { 
   BookOpen, Sparkles, Check, Send, Coins, 
   Search, Download, FileText, Lock, CheckCircle, Clock,
-  Edit2, Trash2, X, MapPin, Phone
+  Edit2, Trash2, X, MapPin, Phone, ArrowUpDown
 } from 'lucide-react';
 
 interface Place {
@@ -60,9 +60,11 @@ export const KatheView: React.FC = () => {
   const [lastRegisteredName, setLastRegisteredName] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
-  // Search & Filter State
+  // Search, Filter & Sorting State
   const [search, setSearch] = useState('');
   const [selectedPlace, setSelectedPlace] = useState('all');
+  const [sortBy, setSortBy] = useState<'book' | 'name' | 'place'>('book');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   // Admin Edit Modal State
@@ -124,17 +126,17 @@ export const KatheView: React.FC = () => {
     fetchParticipants();
   }, [language]);
 
-  const fetchParticipants = async () => {
-    setLoadingList(true);
+  const fetchParticipants = async (silent = false) => {
+    if (!silent) setLoadingList(true);
     try {
-      const res = await api.get('/kathe');
+      const res = await api.get('/kathe?limit=10000');
       if (res.data.status === 'success') {
         setParticipants(res.data.participants || []);
       }
     } catch (err) {
       console.error(err);
     } finally {
-      setLoadingList(false);
+      if (!silent) setLoadingList(false);
     }
   };
 
@@ -274,7 +276,7 @@ export const KatheView: React.FC = () => {
         setBookNo('');
 
         // Refresh list and places in background
-        fetchParticipants();
+        fetchParticipants(true);
         fetchPlaces();
 
         // Automatically focus name input for fast consecutive entry
@@ -338,20 +340,48 @@ export const KatheView: React.FC = () => {
     }
   };
 
-  // Filter Logic
-  const filteredParticipants = (participants || []).filter(p => {
-    const fullName = `${p.firstName || ''} ${p.lastName || ''}`.toLowerCase();
-    const searchStr = (search || '').toLowerCase();
-    const matchesSearch = 
-      fullName.includes(searchStr) || 
-      (p.phone || '').includes(searchStr) || 
-      (p.bookNo || '').toLowerCase().includes(searchStr);
-    
-    const placeId = p.place && typeof p.place === 'object' ? p.place._id : p.place;
-    const matchesPlace = selectedPlace === 'all' || placeId === selectedPlace;
+  // Filter & Sort Logic
+  const filteredParticipants = useMemo(() => {
+    const list = (participants || []).filter(p => {
+      const fullName = `${p.firstName || ''} ${p.lastName || ''}`.toLowerCase();
+      const searchStr = (search || '').toLowerCase();
+      const matchesSearch = 
+        fullName.includes(searchStr) || 
+        (p.phone || '').includes(searchStr) || 
+        (p.bookNo || '').toLowerCase().includes(searchStr);
+      
+      const placeId = p.place && typeof p.place === 'object' ? p.place._id : p.place;
+      const matchesPlace = selectedPlace === 'all' || placeId === selectedPlace;
 
-    return matchesSearch && matchesPlace;
-  });
+      return matchesSearch && matchesPlace;
+    });
+
+    return list.sort((a, b) => {
+      let cmp = 0;
+      if (sortBy === 'book') {
+        cmp = naturalCompareBookNo(a.bookNo, b.bookNo);
+      } else if (sortBy === 'name') {
+        const nameA = `${a.firstName || ''} ${a.lastName || ''}`.trim();
+        const nameB = `${b.firstName || ''} ${b.lastName || ''}`.trim();
+        cmp = nameA.localeCompare(nameB);
+      } else if (sortBy === 'place') {
+        const placeA = getPlaceName(a.place);
+        const placeB = getPlaceName(b.place);
+        cmp = placeA.localeCompare(placeB);
+      }
+
+      if (cmp === 0 && sortBy !== 'book') {
+        cmp = naturalCompareBookNo(a.bookNo, b.bookNo);
+      }
+      if (cmp === 0) {
+        const nameA = `${a.firstName || ''} ${a.lastName || ''}`.trim();
+        const nameB = `${b.firstName || ''} ${b.lastName || ''}`.trim();
+        cmp = nameA.localeCompare(nameB);
+      }
+
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+  }, [participants, search, selectedPlace, sortBy, sortOrder, language]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10 space-y-12">
@@ -689,32 +719,65 @@ export const KatheView: React.FC = () => {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white border border-warm-dark p-4 rounded-xl shadow-sm">
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-charcoal-light" />
-            <input
-              type="text"
-              placeholder={language === 'kn' ? 'ಹೆಸರು, ಫೋನ್ ಅಥವಾ ಪುಸ್ತಕ ಸಂಖ್ಯೆಯ ಮೂಲಕ ಹುಡುಕಿ...' : 'Search by name, phone, or Book No...'}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-warm border border-warm-dark rounded-lg pl-9 pr-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
-            />
+        {/* Filters and Sorting */}
+        <div className="bg-white border border-warm-dark p-4 rounded-xl shadow-sm space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-charcoal-light" />
+              <input
+                type="text"
+                placeholder={language === 'kn' ? 'ಹೆಸರು, ಫೋನ್ ಅಥವಾ ಪುಸ್ತಕ ಸಂಖ್ಯೆಯ ಮೂಲಕ ಹುಡುಕಿ...' : 'Search by name, phone, or Book No...'}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full bg-warm border border-warm-dark rounded-lg pl-9 pr-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
+              />
+            </div>
+
+            <div>
+              <select
+                value={selectedPlace}
+                onChange={(e) => setSelectedPlace(e.target.value)}
+                className="w-full bg-warm border border-warm-dark rounded-lg px-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
+              >
+                <option value="all">{language === 'kn' ? 'ಎಲ್ಲಾ ಸ್ಥಳಗಳು / ಪ್ರದೇಶಗಳು' : 'All Places / Areas'}</option>
+                {places.map(p => (
+                  <option key={p._id} value={p._id}>
+                    {language === 'kn' ? p.nameKannada : p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <div>
-            <select
-              value={selectedPlace}
-              onChange={(e) => setSelectedPlace(e.target.value)}
-              className="w-full bg-warm border border-warm-dark rounded-lg px-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
-            >
-              <option value="all">{language === 'kn' ? 'ಎಲ್ಲಾ ಸ್ಥಳಗಳು / ಪ್ರದೇಶಗಳು' : 'All Places / Areas'}</option>
-              {places.map(p => (
-                <option key={p._id} value={p._id}>
-                  {language === 'kn' ? p.nameKannada : p.name}
-                </option>
-              ))}
-            </select>
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-warm-dark/50 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-charcoal-light flex items-center gap-1">
+                <ArrowUpDown className="h-3.5 w-3.5 text-primary" />
+                <span>{language === 'kn' ? 'ವಿಂಗಡಣೆ (Sort By):' : 'Sort By:'}</span>
+              </span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="bg-warm border border-warm-dark rounded-lg px-2.5 py-1.5 font-bold text-charcoal outline-none focus:border-accent"
+              >
+                <option value="book">{language === 'kn' ? 'ಪುಸ್ತಕ ಸಂಖ್ಯೆ (Book No)' : 'Book No'}</option>
+                <option value="name">{language === 'kn' ? 'ಭಕ್ತರ ಹೆಸರು (Name)' : 'Devotee Name'}</option>
+                <option value="place">{language === 'kn' ? 'ಸ್ಥಳ (Place)' : 'Place / Area'}</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                className="px-2.5 py-1.5 bg-warm hover:bg-warm-dark/60 rounded-lg border border-warm-dark font-bold text-charcoal transition"
+                title="Toggle Order"
+              >
+                {sortOrder === 'asc' ? '▲ Asc (1-9, A-Z)' : '▼ Desc (9-1, Z-A)'}
+              </button>
+            </div>
+
+            <div className="text-charcoal-light">
+              {language === 'kn' ? 'ತೋರಿಸಲಾಗುತ್ತಿದೆ: ' : 'Showing: '}
+              <b className="text-charcoal">{filteredParticipants.length}</b> {language === 'kn' ? 'ಭಕ್ತಾದಿಗಳು' : 'devotees'}
+            </div>
           </div>
         </div>
 

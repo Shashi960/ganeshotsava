@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
-import { Truck, CheckCircle2, AlertCircle, Clock, MapPin, Search, BookOpen, RefreshCw, XCircle, Sparkles, UserCheck } from 'lucide-react';
+import { Truck, CheckCircle2, AlertCircle, Clock, MapPin, Search, BookOpen, RefreshCw, XCircle, Sparkles, UserCheck, ArrowUpDown } from 'lucide-react';
+import { naturalCompareBookNo } from '../utils/pdfExport';
 
 interface Stats {
   total: number;
@@ -57,14 +58,16 @@ export const PrasadaView: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [placeFilter, setPlaceFilter] = useState('all');
+  const [sortBy, setSortBy] = useState<'book' | 'place' | 'name' | 'status'>('book');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [isDeliveryOpen, setIsDeliveryOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [statsRes, delRes] = await Promise.all([
         api.get('/prasada/stats'),
@@ -86,7 +89,7 @@ export const PrasadaView: React.FC = () => {
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -133,9 +136,9 @@ export const PrasadaView: React.FC = () => {
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [deliveries, language]);
 
-  // Filtered deliveries
+  // Filtered and sorted deliveries
   const filteredDeliveries = useMemo(() => {
-    return deliveries.filter(del => {
+    const list = deliveries.filter(del => {
       const p = del.participant;
       const devoteeName = `${p?.firstName || ''} ${p?.lastName || ''}`.trim() || del.homeName || '';
       const book = p?.bookNo || p?.notes || '';
@@ -153,7 +156,49 @@ export const PrasadaView: React.FC = () => {
       if (placeFilter !== 'all' && (del.place?._id !== placeFilter && del.place?.name !== placeFilter)) return false;
       return true;
     });
-  }, [deliveries, search, statusFilter, placeFilter]);
+
+    return list.sort((a, b) => {
+      let cmp = 0;
+      if (sortBy === 'book') {
+        const bookA = (a.participant?.bookNo || a.participant?.notes || '').trim();
+        const bookB = (b.participant?.bookNo || b.participant?.notes || '').trim();
+        cmp = naturalCompareBookNo(bookA, bookB);
+      } else if (sortBy === 'place') {
+        const placeA = (language === 'kn' && a.place?.nameKannada ? a.place.nameKannada : a.place?.name) || '';
+        const placeB = (language === 'kn' && b.place?.nameKannada ? b.place.nameKannada : b.place?.name) || '';
+        cmp = placeA.localeCompare(placeB, language === 'kn' ? 'kn' : undefined);
+      } else if (sortBy === 'name') {
+        const nameA = `${a.participant?.firstName || ''} ${a.participant?.lastName || ''}`.trim() || a.homeName || '';
+        const nameB = `${b.participant?.firstName || ''} ${b.participant?.lastName || ''}`.trim() || b.homeName || '';
+        cmp = nameA.localeCompare(nameB);
+      } else if (sortBy === 'status') {
+        const statusRank: Record<string, number> = {
+          'PENDING': 1,
+          'ASSIGNED': 2,
+          'OUT_FOR_DELIVERY': 3,
+          'DELIVERED': 4,
+          'UNABLE_TO_DELIVER': 5
+        };
+        const rankA = statusRank[a.status] || 99;
+        const rankB = statusRank[b.status] || 99;
+        cmp = rankA - rankB;
+      }
+
+      // Tie breaker
+      if (cmp === 0 && sortBy !== 'book') {
+        const bookA = (a.participant?.bookNo || a.participant?.notes || '').trim();
+        const bookB = (b.participant?.bookNo || b.participant?.notes || '').trim();
+        cmp = naturalCompareBookNo(bookA, bookB);
+      }
+      if (cmp === 0) {
+        const nameA = `${a.participant?.firstName || ''} ${a.participant?.lastName || ''}`.trim() || a.homeName || '';
+        const nameB = `${b.participant?.firstName || ''} ${b.participant?.lastName || ''}`.trim() || b.homeName || '';
+        cmp = nameA.localeCompare(nameB);
+      }
+
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+  }, [deliveries, search, statusFilter, placeFilter, sortBy, sortOrder, language]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
@@ -289,7 +334,8 @@ export const PrasadaView: React.FC = () => {
 
           {/* Refresh button */}
           <button
-            onClick={fetchData}
+            type="button"
+            onClick={() => fetchData(true)}
             className="self-start md:self-auto px-3 py-1.5 border border-warm-dark hover:bg-warm rounded-lg text-charcoal-light hover:text-charcoal inline-flex items-center gap-1.5 text-xs font-bold uppercase transition"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin text-primary' : ''}`} />
@@ -312,6 +358,7 @@ export const PrasadaView: React.FC = () => {
               />
               {search && (
                 <button
+                  type="button"
                   onClick={() => setSearch('')}
                   className="absolute right-3 top-2.5 text-xs text-charcoal-light hover:text-charcoal"
                 >
@@ -345,6 +392,7 @@ export const PrasadaView: React.FC = () => {
               { key: 'DELIVERED', label: language === 'kn' ? 'ತಲುಪಿದೆ' : 'Delivered' }
             ].map(tab => (
               <button
+                type="button"
                 key={tab.key}
                 onClick={() => setStatusFilter(tab.key)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
@@ -358,23 +406,52 @@ export const PrasadaView: React.FC = () => {
             ))}
           </div>
 
-          <div className="flex items-center justify-between text-xs text-charcoal-light px-1">
-            <span>
-              {language === 'kn' ? 'ಒಟ್ಟು ತೋರಿಸಲಾಗುತ್ತಿದೆ: ' : 'Showing: '}
-              <b>{filteredDeliveries.length}</b> {language === 'kn' ? 'ಭಕ್ತಾದಿಗಳು' : 'devotees'}
-            </span>
-            {(search || statusFilter !== 'all' || placeFilter !== 'all') && (
-              <button
-                onClick={() => {
-                  setSearch('');
-                  setStatusFilter('all');
-                  setPlaceFilter('all');
-                }}
-                className="text-primary font-bold hover:underline"
+          {/* Sorting Controls & Stats Row */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-warm-dark/50 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-charcoal-light flex items-center gap-1">
+                <ArrowUpDown className="h-3.5 w-3.5 text-primary" />
+                <span>{language === 'kn' ? 'ವಿಂಗಡಣೆ:' : 'Sort By:'}</span>
+              </span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="bg-warm/60 border border-warm-dark rounded-xl px-2.5 py-1.5 font-bold text-charcoal outline-none focus:border-accent"
               >
-                {language === 'kn' ? 'ಫಿಲ್ಟರ್ ತೆರವುಗೊಳಿಸಿ' : 'Clear filters'}
+                <option value="book">{language === 'kn' ? 'ಪುಸ್ತಕ ಸಂಖ್ಯೆ (Book No)' : 'Book No'}</option>
+                <option value="place">{language === 'kn' ? 'ಪ್ರದೇಶ / ಸ್ಥಳ (Area)' : 'Place / Area'}</option>
+                <option value="name">{language === 'kn' ? 'ಭಕ್ತರ ಹೆಸರು (Name)' : 'Devotee Name'}</option>
+                <option value="status">{language === 'kn' ? 'ವಿತರಣಾ ಸ್ಥಿತಿ (Status)' : 'Status'}</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                className="px-2.5 py-1.5 bg-warm hover:bg-warm-dark/60 rounded-xl border border-warm-dark font-bold text-charcoal transition"
+                title="Toggle Ascending / Descending"
+              >
+                {sortOrder === 'asc' ? '▲ Asc (1-9, A-Z)' : '▼ Desc (9-1, Z-A)'}
               </button>
-            )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span>
+                {language === 'kn' ? 'ಒಟ್ಟು ತೋರಿಸಲಾಗುತ್ತಿದೆ: ' : 'Showing: '}
+                <b>{filteredDeliveries.length}</b> {language === 'kn' ? 'ಭಕ್ತಾದಿಗಳು' : 'devotees'}
+              </span>
+              {(search || statusFilter !== 'all' || placeFilter !== 'all') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch('');
+                    setStatusFilter('all');
+                    setPlaceFilter('all');
+                  }}
+                  className="text-primary font-bold hover:underline"
+                >
+                  {language === 'kn' ? 'ಫಿಲ್ಟರ್ ತೆರವುಗೊಳಿಸಿ' : 'Clear filters'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

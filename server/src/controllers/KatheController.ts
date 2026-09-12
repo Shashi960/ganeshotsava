@@ -103,14 +103,16 @@ export const getKatheParticipants = async (req: Request, res: Response, next: Ne
       ];
     }
 
-    const p = parseInt(page as string);
-    const l = parseInt(limit as string);
+    const hasLimit = req.query.limit !== undefined && req.query.limit !== 'all';
+    const l = hasLimit ? parseInt(req.query.limit as string) : 10000;
+    const p = req.query.page ? parseInt(req.query.page as string) : 1;
     const skipIndex = (p - 1) * l;
 
     const total = await KatheParticipant.countDocuments(filter);
     const participants = await KatheParticipant.find(filter)
+      .collation({ locale: 'en', numericOrdering: true })
       .populate('place')
-      .sort({ firstName: 1 })
+      .sort({ bookNo: 1, firstName: 1 })
       .limit(l)
       .skip(skipIndex);
 

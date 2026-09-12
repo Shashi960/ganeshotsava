@@ -30,7 +30,20 @@ export const exportKatheToExcel = (
     'Year'
   ];
 
-  const rows = participants.map((p) => {
+  const sortedParticipants = [...participants].sort((a, b) => {
+    const bookA = (a.bookNo || a.notes || '').trim();
+    const bookB = (b.bookNo || b.notes || '').trim();
+    if (!bookA && !bookB) return 0;
+    if (!bookA) return 1;
+    if (!bookB) return -1;
+    const cmp = bookA.localeCompare(bookB, undefined, { numeric: true, sensitivity: 'base' });
+    if (cmp !== 0) return cmp;
+    const nameA = `${a.firstName || ''} ${a.lastName || ''}`.trim();
+    const nameB = `${b.firstName || ''} ${b.lastName || ''}`.trim();
+    return nameA.localeCompare(nameB);
+  });
+
+  const rows = sortedParticipants.map((p) => {
     let placeName = '';
     if (p.place && typeof p.place === 'object') {
       placeName = language === 'kn' ? (p.place.nameKannada || p.place.name) : (p.place.name || p.place.nameKannada);

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { BookOpen, Download, FileText, Search, Trash2, CheckCircle, Clock, Edit2, X, MapPin, Phone } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { BookOpen, Download, FileText, Search, Trash2, CheckCircle, Clock, Edit2, X, MapPin, Phone, ArrowUpDown } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 import { exportKatheToExcel } from '../utils/excelExport';
-import { exportKatheToPdf } from '../utils/pdfExport';
+import { exportKatheToPdf, naturalCompareBookNo } from '../utils/pdfExport';
 import api from '../services/api';
 
 interface Place {
@@ -34,10 +34,12 @@ export const AdminKathe: React.FC = () => {
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Search & Filters
+  // Search, Filters & Sorting
   const [search, setSearch] = useState('');
   const [selectedPlace, setSelectedPlace] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [sortBy, setSortBy] = useState<'book' | 'name' | 'place' | 'status'>('book');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   // Edit Modal State
@@ -58,11 +60,11 @@ export const AdminKathe: React.FC = () => {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [participantsRes, placesRes] = await Promise.all([
-        api.get('/kathe'),
+        api.get('/kathe?limit=10000'),
         api.get('/places')
       ]);
 
@@ -76,7 +78,7 @@ export const AdminKathe: React.FC = () => {
       console.error(err);
       showToast('Failed to fetch Kathe registrations.', 'error');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -224,23 +226,56 @@ export const AdminKathe: React.FC = () => {
     return language === 'kn' ? (placeObj.nameKannada || placeObj.name) : (placeObj.name || placeObj.nameKannada);
   };
 
-  // Filter logic
-  const filteredParticipants = (participants || []).filter(p => {
-    const fullName = `${p.firstName || ''} ${p.lastName || ''}`.toLowerCase();
-    const searchStr = (search || '').toLowerCase();
-    const matchesSearch =
-      fullName.includes(searchStr) ||
-      (p.phone || '').includes(searchStr) ||
-      (p.bookNo || '').toLowerCase().includes(searchStr) ||
-      (p.homeName || '').toLowerCase().includes(searchStr);
+  // Filter & Sort logic
+  const filteredParticipants = useMemo(() => {
+    const list = (participants || []).filter(p => {
+      const fullName = `${p.firstName || ''} ${p.lastName || ''}`.toLowerCase();
+      const searchStr = (search || '').toLowerCase();
+      const matchesSearch =
+        fullName.includes(searchStr) ||
+        (p.phone || '').includes(searchStr) ||
+        (p.bookNo || '').toLowerCase().includes(searchStr) ||
+        (p.homeName || '').toLowerCase().includes(searchStr);
 
-    const placeId = p.place && typeof p.place === 'object' ? p.place._id : p.place;
-    const matchesPlace = selectedPlace === 'all' || placeId === selectedPlace;
+      const placeId = p.place && typeof p.place === 'object' ? p.place._id : p.place;
+      const matchesPlace = selectedPlace === 'all' || placeId === selectedPlace;
 
-    const matchesStatus = selectedStatus === 'all' || p.registrationStatus === selectedStatus;
+      const matchesStatus = selectedStatus === 'all' || p.registrationStatus === selectedStatus;
 
-    return matchesSearch && matchesPlace && matchesStatus;
-  });
+      return matchesSearch && matchesPlace && matchesStatus;
+    });
+
+    return list.sort((a, b) => {
+      let cmp = 0;
+      if (sortBy === 'book') {
+        cmp = naturalCompareBookNo(a.bookNo, b.bookNo);
+      } else if (sortBy === 'name') {
+        const nameA = `${a.firstName || ''} ${a.lastName || ''}`.trim();
+        const nameB = `${b.firstName || ''} ${b.lastName || ''}`.trim();
+        cmp = nameA.localeCompare(nameB);
+      } else if (sortBy === 'place') {
+        const placeA = getPlaceName(a.place);
+        const placeB = getPlaceName(b.place);
+        cmp = placeA.localeCompare(placeB);
+      } else if (sortBy === 'status') {
+        const statA = a.confirmed ? 1 : 0;
+        const statB = b.confirmed ? 1 : 0;
+        cmp = statB - statA;
+      }
+
+      // Secondary tie-breaker
+      if (cmp === 0 && sortBy !== 'book') {
+        cmp = naturalCompareBookNo(a.bookNo, b.bookNo);
+      }
+      if (cmp === 0) {
+        const nameA = `${a.firstName || ''} ${a.lastName || ''}`.trim();
+        const nameB = `${b.firstName || ''} ${b.lastName || ''}`.trim();
+        cmp = nameA.localeCompare(nameB);
+      }
+
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+  }, [participants, search, selectedPlace, selectedStatus, sortBy, sortOrder, language]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
@@ -275,44 +310,78 @@ export const AdminKathe: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 bg-white border border-warm-dark p-4 rounded-xl shadow-sm">
-        <div className="relative">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-charcoal-light" />
-          <input
-            type="text"
-            placeholder="Search by devotee name, book no, or phone..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-warm border border-warm-dark rounded-lg pl-9 pr-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
-          />
+      {/* Filters & Sorting Bar */}
+      <div className="bg-white border border-warm-dark p-4 rounded-xl shadow-sm space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-charcoal-light" />
+            <input
+              type="text"
+              placeholder="Search by devotee name, book no, or phone..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-warm border border-warm-dark rounded-lg pl-9 pr-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
+            />
+          </div>
+
+          <div>
+            <select
+              value={selectedPlace}
+              onChange={(e) => setSelectedPlace(e.target.value)}
+              className="w-full bg-warm border border-warm-dark rounded-lg px-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
+            >
+              <option value="all">All Places / Areas</option>
+              {places.map(p => (
+                <option key={p._id} value={p._id}>
+                  {language === 'kn' ? p.nameKannada : p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="w-full bg-warm border border-warm-dark rounded-lg px-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
+            >
+              <option value="all">All Statuses</option>
+              <option value="PENDING">Pending (Sankalpa Not Done)</option>
+              <option value="CONFIRMED">Confirmed (Sankalpa Completed)</option>
+            </select>
+          </div>
         </div>
 
-        <div>
-          <select
-            value={selectedPlace}
-            onChange={(e) => setSelectedPlace(e.target.value)}
-            className="w-full bg-warm border border-warm-dark rounded-lg px-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
-          >
-            <option value="all">All Places / Areas</option>
-            {places.map(p => (
-              <option key={p._id} value={p._id}>
-                {language === 'kn' ? p.nameKannada : p.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Sorting & Stats Row */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-warm-dark/50 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-charcoal-light flex items-center gap-1">
+              <ArrowUpDown className="h-3.5 w-3.5 text-primary" />
+              <span>Sort By:</span>
+            </span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="bg-warm border border-warm-dark rounded-lg px-2.5 py-1.5 font-bold text-charcoal outline-none focus:border-accent"
+            >
+              <option value="book">Book No (ಪುಸ್ತಕ ಸಂಖ್ಯೆ)</option>
+              <option value="name">Devotee Name (ಹೆಸರು)</option>
+              <option value="place">Place / Area (ಸ್ಥಳ)</option>
+              <option value="status">Status (ದೃಢೀಕರಣ)</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+              className="px-2.5 py-1.5 bg-warm hover:bg-warm-dark/60 rounded-lg border border-warm-dark font-bold text-charcoal transition"
+              title="Toggle Ascending / Descending"
+            >
+              {sortOrder === 'asc' ? '▲ Asc (1-9, A-Z)' : '▼ Desc (9-1, Z-A)'}
+            </button>
+          </div>
 
-        <div>
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="w-full bg-warm border border-warm-dark rounded-lg px-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
-          >
-            <option value="all">All Statuses</option>
-            <option value="PENDING">Pending (Sankalpa Not Done)</option>
-            <option value="CONFIRMED">Confirmed (Sankalpa Completed)</option>
-          </select>
+          <div className="text-charcoal-light">
+            Showing <b className="text-charcoal">{filteredParticipants.length}</b> of <b>{participants.length}</b> devotees
+          </div>
         </div>
       </div>
 

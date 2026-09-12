@@ -27,6 +27,15 @@ export interface ExportKathePdfOptions {
  * - Not an image: Searchable, selectable, and 100% vector Unicode text.
  * - Print-ready: A4 Portrait with table borders, zebra striping, repeated headers, and page numbers.
  */
+export const naturalCompareBookNo = (a?: string, b?: string): number => {
+  if (!a && !b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  const strA = String(a).trim();
+  const strB = String(b).trim();
+  return strA.localeCompare(strB, undefined, { numeric: true, sensitivity: 'base' });
+};
+
 export const exportKatheToPdf = async (
   participants: any[],
   language: string,
@@ -60,7 +69,7 @@ export const exportKatheToPdf = async (
           const dateStr = new Date().toISOString().split('T')[0];
           link.setAttribute(
             'download',
-            `${options?.filenamePrefix || 'satya_ganapati_vrata_devotees'}_${dateStr}.pdf`
+            `${options?.filenamePrefix || 'satya_ganapati_vrata_bookwise'}_${dateStr}.pdf`
           );
           document.body.appendChild(link);
           link.click();
@@ -84,33 +93,81 @@ export const exportKatheToPdf = async (
       const cols = [
         { header: 'ಕ್ರ.ಸಂ\n(SL)', width: 34, align: 'center' as const },
         { header: 'ಭಕ್ತರ ಹೆಸರು\n(DEVOTEE NAME)', width: 170, align: 'left' as const },
-        { header: 'ಸ್ಥಳ / ಪ್ರದೇಶ\n(PLACE / AREA)', width: 110, align: 'left' as const },
-        { header: 'ಪುಸ್ತಕ ಸಂಖ್ಯೆ\n(BOOK NO)', width: 65, align: 'center' as const },
-        { header: 'ವರ್ಷ\n(YEAR)', width: 45, align: 'center' as const },
-        { header: 'ಸಂಕಲ್ಪ ಸ್ಥಿತಿ\n(STATUS)', width: 115.28, align: 'center' as const }
+        { header: 'ಸ್ಥಳ / ಪ್ರದೇಶ\n(PLACE / AREA)', width: 105, align: 'left' as const },
+        { header: 'ಪುಸ್ತಕ ಸಂಖ್ಯೆ\n(BOOK NO)', width: 60, align: 'center' as const },
+        { header: 'ದೂರವಾಣಿ\n(PHONE)', width: 65, align: 'center' as const },
+        { header: 'ಸಂಕಲ್ಪ ಸ್ಥಿತಿ\n(STATUS)', width: 105.28, align: 'center' as const }
       ];
+
+      // Group participants by Book No
+      const bookGroups = new Map<string, any[]>();
+      participants.forEach((p) => {
+        const rawBook = (p.bookNo || p.notes || '').trim();
+        const key = rawBook || (language === 'kn' ? 'ಇತರೆ / ನಮೂದಿಸಿಲ್ಲ' : 'Unassigned / Other');
+        if (!bookGroups.has(key)) {
+          bookGroups.set(key, []);
+        }
+        bookGroups.get(key)!.push(p);
+      });
+
+      const isUnassignedKey = (k: string) => k.includes('ಇತರೆ') || k.includes('Unassigned');
+
+      // Sort book numbers in natural order: Book 1, Book 2, Book 3... 10... Unassigned at end
+      const sortedBookKeys = Array.from(bookGroups.keys()).sort((a, b) => {
+        if (isUnassignedKey(a) && isUnassignedKey(b)) return 0;
+        if (isUnassignedKey(a)) return 1;
+        if (isUnassignedKey(b)) return -1;
+        return naturalCompareBookNo(a, b);
+      });
+
+      // Sort participants inside each book group by name
+      sortedBookKeys.forEach((key) => {
+        const list = bookGroups.get(key)!;
+        list.sort((a, b) => {
+          const nameA = `${a.firstName || ''} ${a.lastName || ''}`.trim();
+          const nameB = `${b.firstName || ''} ${b.lastName || ''}`.trim();
+          return nameA.localeCompare(nameB);
+        });
+      });
 
       let y = margin;
       const currentYear = options?.year || '2026';
+      let currentActiveBook = sortedBookKeys[0] || '';
 
-      const drawHeader = (isFirstPage: boolean) => {
+      const drawTableHeader = () => {
+        const headerHeight = 22;
+        doc.rect(margin, y, contentWidth, headerHeight).fill('#374151');
+        doc.fillColor('#FFFFFF').fontSize(7.5);
+
+        let curX = margin;
+        for (const col of cols) {
+          doc.text(col.header, curX + 2, y + 3, {
+            width: col.width - 4,
+            align: col.align
+          });
+          curX += col.width;
+        }
+        y += headerHeight;
+      };
+
+      const drawDocumentHeader = (isFirstPage: boolean, bookContinuation?: string) => {
         if (isFirstPage) {
           // Document Header / Title
           doc.fillColor('#7A1C1C').fontSize(14).text(
-            'ಶ್ರೀ ಸತ್ಯಗಣಪತಿ ವ್ರತ - ನೋಂದಾಯಿತ ಭಕ್ತರ ಪಟ್ಟಿ',
+            'ಶ್ರೀ ಸತ್ಯಗಣಪತಿ ವ್ರತ - ಪುಸ್ತಕವಾರು ನೋಂದಾಯಿತ ಭಕ್ತರ ಪಟ್ಟಿ',
             margin,
             y,
             { align: 'center', width: contentWidth }
           );
           y += 18;
 
-          doc.fillColor('#4B5563').fontSize(9.5).text(
-            `Registered Devotees - Satya Ganapati Vrata ${currentYear} | ಶ್ರೀ ಗಣೇಶೋತ್ಸವ ಸೇವಾ ಸಮಿತಿ, ನಾಜಗಾರ`,
+          doc.fillColor('#4B5563').fontSize(9).text(
+            `Registered Devotees (Book-wise) - Satya Ganapati Vrata ${currentYear} | ಶ್ರೀ ಗಣೇಶೋತ್ಸವ ಸೇವಾ ಸಮಿತಿ, ನಾಜಗಾರ`,
             margin,
             y,
             { align: 'center', width: contentWidth }
           );
-          y += 15;
+          y += 14;
 
           const now = new Date();
           const dateStrFormatted = now.toLocaleDateString('en-IN', {
@@ -124,151 +181,213 @@ export const exportKatheToPdf = async (
           });
 
           doc.fillColor('#6B7280').fontSize(7.5).text(
-            `Generation Date: ${dateStrFormatted} ${timeStr}  |  Total Devotees: ${participants.length}`,
+            `Generation Date: ${dateStrFormatted} ${timeStr}  |  Total Books: ${sortedBookKeys.length}  |  Total Devotees: ${participants.length}`,
             margin,
             y,
             { align: 'right', width: contentWidth }
           );
           y += 12;
+
+          // Book Summary Pills Box
+          const summaryBoxHeight = sortedBookKeys.length > 8 ? 32 : 22;
+          doc.rect(margin, y, contentWidth, summaryBoxHeight).fill('#FFFBEB');
+          doc.rect(margin, y, contentWidth, summaryBoxHeight).strokeColor('#FDE68A').lineWidth(0.5).stroke();
+
+          const summaryText = sortedBookKeys
+            .map((bk) => `${bk}: ${bookGroups.get(bk)!.length}`)
+            .join('   |   ');
+
+          doc.fillColor('#92400E').fontSize(7.5).text(
+            `ಪುಸ್ತಕಗಳ ಸಾರಾಂಶ (Book Summary):  ${summaryText}`,
+            margin + 6,
+            y + 5,
+            { width: contentWidth - 12, align: 'left', lineBreak: true }
+          );
+          y += summaryBoxHeight + 8;
         } else {
-          doc.fillColor('#7A1C1C').fontSize(9.5).text(
-            `ಶ್ರೀ ಸತ್ಯಗಣಪತಿ ವ್ರತ - ನೋಂದಾಯಿತ ಭಕ್ತರ ಪಟ್ಟಿ (${currentYear})`,
+          doc.fillColor('#7A1C1C').fontSize(9).text(
+            `ಶ್ರೀ ಸತ್ಯಗಣಪತಿ ವ್ರತ - ಪುಸ್ತಕವಾರು ನೋಂದಾಯಿತ ಭಕ್ತರ ಪಟ್ಟಿ (${currentYear})${bookContinuation ? ` — ಪುಸ್ತಕ: ${bookContinuation} (ಮುಂದುವರಿದಿದೆ)` : ''}`,
             margin,
             y,
             { align: 'left', width: contentWidth }
           );
-          y += 14;
+          y += 13;
         }
-
-        // Table Column Headers
-        const headerHeight = 26;
-        doc.rect(margin, y, contentWidth, headerHeight).fill('#7A1C1C');
-        doc.fillColor('#FFFFFF').fontSize(8);
-
-        let curX = margin;
-        for (const col of cols) {
-          doc.text(col.header, curX + 2, y + 4, {
-            width: col.width - 4,
-            align: col.align
-          });
-          curX += col.width;
-        }
-        y += headerHeight;
       };
 
-      drawHeader(true);
+      drawDocumentHeader(true);
 
-      // Render Participant Rows
-      participants.forEach((p, idx) => {
-        const hasFamily = Boolean(p.homeName);
-        const rowHeight = hasFamily ? 26 : 20;
+      let globalDevoteeCount = 0;
 
-        // Check if row exceeds printable height -> trigger automatic page break
-        if (y + rowHeight > pageHeight - margin - 20) {
+      // Render each Book Group
+      sortedBookKeys.forEach((bookKey) => {
+        currentActiveBook = bookKey;
+        const groupParticipants = bookGroups.get(bookKey) || [];
+
+        // Check space for Book Banner + Table Header + at least 1 row
+        if (y + 55 > pageHeight - margin - 20) {
           doc.addPage();
           y = margin;
-          drawHeader(false);
+          drawDocumentHeader(false, bookKey);
         }
 
-        // Alternating row background (zebra striping)
-        if (idx % 2 === 1) {
-          doc.rect(margin, y, contentWidth, rowHeight).fill('#F9FAFB');
-        }
-
-        // Cell border outline
-        doc.rect(margin, y, contentWidth, rowHeight).strokeColor('#E5E7EB').lineWidth(0.5).stroke();
-
-        let curX = margin;
-
-        // 1. SL NO
-        doc.fillColor('#374151').fontSize(8.5).text(
-          String(idx + 1),
-          curX,
-          y + (rowHeight - 11) / 2,
-          { width: cols[0].width, align: cols[0].align }
+        // Draw Book Section Banner
+        const bannerHeight = 18;
+        doc.rect(margin, y, contentWidth, bannerHeight).fill('#7A1C1C');
+        doc.fillColor('#FDE68A').fontSize(9).text(
+          `📖  ಪುಸ್ತಕ ಸಂಖ್ಯೆ (BOOK NO): ${bookKey}`,
+          margin + 8,
+          y + 4,
+          { width: 300, align: 'left' }
         );
-        curX += cols[0].width;
-
-        // 2. DEVOTEE NAME + FAMILY
-        const nameY = hasFamily ? y + 3 : y + (rowHeight - 11) / 2;
-        doc.fillColor('#111827').fontSize(8.5).text(
-          `${p.firstName || ''} ${p.lastName || ''}`.trim(),
-          curX + 4,
-          nameY,
-          { width: cols[1].width - 8, align: cols[1].align, lineBreak: false, ellipsis: true }
+        doc.fillColor('#FFFFFF').fontSize(8).text(
+          `ಒಟ್ಟು ಭಕ್ತಾದಿಗಳು (Devotees): ${groupParticipants.length}`,
+          margin + contentWidth - 200,
+          y + 4.5,
+          { width: 190, align: 'right' }
         );
-        if (hasFamily) {
-          doc.fillColor('#6B7280').fontSize(7.5).text(
-            `ಮನೆತನ: ${p.homeName}`,
+        y += bannerHeight;
+
+        // Draw Table Header under the Book banner
+        drawTableHeader();
+
+        // Render rows for this book
+        groupParticipants.forEach((p, bIdx) => {
+          globalDevoteeCount++;
+          const hasFamily = Boolean(p.homeName);
+          const rowHeight = hasFamily ? 25 : 19;
+
+          // Check if row exceeds printable height -> trigger page break
+          if (y + rowHeight > pageHeight - margin - 20) {
+            doc.addPage();
+            y = margin;
+            drawDocumentHeader(false, bookKey);
+            drawTableHeader();
+          }
+
+          // Alternating row background (zebra striping)
+          if (bIdx % 2 === 1) {
+            doc.rect(margin, y, contentWidth, rowHeight).fill('#F9FAFB');
+          }
+
+          // Cell border outline
+          doc.rect(margin, y, contentWidth, rowHeight).strokeColor('#E5E7EB').lineWidth(0.5).stroke();
+
+          let curX = margin;
+
+          // 1. SL NO (Book index)
+          doc.fillColor('#374151').fontSize(8).text(
+            String(bIdx + 1),
+            curX,
+            y + (rowHeight - 10) / 2,
+            { width: cols[0].width, align: cols[0].align }
+          );
+          curX += cols[0].width;
+
+          // 2. DEVOTEE NAME + FAMILY
+          const nameY = hasFamily ? y + 2.5 : y + (rowHeight - 10) / 2;
+          doc.fillColor('#111827').fontSize(8).text(
+            `${p.firstName || ''} ${p.lastName || ''}`.trim(),
             curX + 4,
-            y + 14,
+            nameY,
             { width: cols[1].width - 8, align: cols[1].align, lineBreak: false, ellipsis: true }
           );
-        }
-        curX += cols[1].width;
+          if (hasFamily) {
+            doc.fillColor('#6B7280').fontSize(7).text(
+              `ಮನೆತನ: ${p.homeName}`,
+              curX + 4,
+              y + 13,
+              { width: cols[1].width - 8, align: cols[1].align, lineBreak: false, ellipsis: true }
+            );
+          }
+          curX += cols[1].width;
 
-        // 3. PLACE / AREA
-        let placeText = '-';
-        if (p.place && typeof p.place === 'object') {
-          placeText = language === 'kn' ? (p.place.nameKannada || p.place.name) : (p.place.name || p.place.nameKannada);
-        } else if (p.place) {
-          placeText = String(p.place);
-        }
+          // 3. PLACE / AREA
+          let placeText = '-';
+          if (p.place && typeof p.place === 'object') {
+            placeText = language === 'kn' ? (p.place.nameKannada || p.place.name) : (p.place.name || p.place.nameKannada);
+          } else if (p.place) {
+            placeText = String(p.place);
+          }
 
-        doc.fillColor('#374151').fontSize(8.5).text(
-          placeText,
-          curX + 4,
-          y + (rowHeight - 11) / 2,
-          { width: cols[2].width - 8, align: cols[2].align, lineBreak: false, ellipsis: true }
-        );
-        curX += cols[2].width;
+          doc.fillColor('#374151').fontSize(8).text(
+            placeText,
+            curX + 3,
+            y + (rowHeight - 10) / 2,
+            { width: cols[2].width - 6, align: cols[2].align, lineBreak: false, ellipsis: true }
+          );
+          curX += cols[2].width;
 
-        // 4. BOOK NUMBER
-        doc.fillColor('#111827').fontSize(8.5).text(
-          p.bookNo || p.notes || '-',
-          curX + 2,
-          y + (rowHeight - 11) / 2,
-          { width: cols[3].width - 4, align: cols[3].align, lineBreak: false, ellipsis: true }
-        );
-        curX += cols[3].width;
+          // 4. BOOK NUMBER
+          doc.fillColor('#111827').fontSize(8).text(
+            p.bookNo || p.notes || bookKey,
+            curX + 2,
+            y + (rowHeight - 10) / 2,
+            { width: cols[3].width - 4, align: cols[3].align, lineBreak: false, ellipsis: true }
+          );
+          curX += cols[3].width;
 
-        // 5. YEAR
-        doc.fillColor('#374151').fontSize(8.5).text(
-          p.year || currentYear,
-          curX + 2,
-          y + (rowHeight - 11) / 2,
-          { width: cols[4].width - 4, align: cols[4].align }
-        );
-        curX += cols[4].width;
+          // 5. PHONE
+          doc.fillColor('#374151').fontSize(8).text(
+            p.phone ? String(p.phone).trim() : '-',
+            curX + 2,
+            y + (rowHeight - 10) / 2,
+            { width: cols[4].width - 4, align: cols[4].align, lineBreak: false, ellipsis: true }
+          );
+          curX += cols[4].width;
 
-        // 6. SANKALPA STATUS
-        const isConfirmed = p.confirmed || p.registrationStatus === 'CONFIRMED';
-        const statusColor = isConfirmed ? '#065F46' : '#92400E';
-        const statusBg = isConfirmed ? '#D1FAE5' : '#FEF3C7';
-        const statusText = isConfirmed ? 'ದೃಢೀಕರಿಸಲಾಗಿದೆ (CONFIRMED)' : 'ಬಾಕಿ (PENDING)';
+          // 6. SANKALPA STATUS
+          const isConfirmed = p.confirmed || p.registrationStatus === 'CONFIRMED';
+          const statusColor = isConfirmed ? '#065F46' : '#92400E';
+          const statusBg = isConfirmed ? '#D1FAE5' : '#FEF3C7';
+          const statusText = isConfirmed ? 'ದೃಢೀಕರಿಸಲಾಗಿದೆ' : 'ಬಾಕಿ (PENDING)';
 
-        const badgeW = cols[5].width - 12;
-        const badgeH = 14;
-        const badgeX = curX + 6;
-        const badgeY = y + (rowHeight - badgeH) / 2;
+          const badgeW = cols[5].width - 12;
+          const badgeH = 13;
+          const badgeX = curX + 6;
+          const badgeY = y + (rowHeight - badgeH) / 2;
 
-        doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 3).fill(statusBg);
-        doc.fillColor(statusColor).fontSize(7).text(
-          statusText,
-          badgeX,
-          badgeY + 3,
-          { width: badgeW, align: 'center' }
-        );
+          doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 2.5).fill(statusBg);
+          doc.fillColor(statusColor).fontSize(7).text(
+            statusText,
+            badgeX,
+            badgeY + 2.5,
+            { width: badgeW, align: 'center' }
+          );
 
-        y += rowHeight;
+          y += rowHeight;
+        });
+
+        // Small spacer after each book group
+        y += 7;
       });
+
+      // Signature Block at the end of document
+      if (y + 55 > pageHeight - margin - 20) {
+        doc.addPage();
+        y = margin + 20;
+      } else {
+        y += 15;
+      }
+
+      const sigWidth = contentWidth / 3;
+      doc.fillColor('#4B5563').fontSize(7.5);
+      doc.text('_____________________________', margin, y, { width: sigWidth, align: 'center' });
+      doc.text('_____________________________', margin + sigWidth, y, { width: sigWidth, align: 'center' });
+      doc.text('_____________________________', margin + sigWidth * 2, y, { width: sigWidth, align: 'center' });
+      y += 12;
+
+      doc.fillColor('#111827').fontSize(7.5);
+      doc.text('ಪುಸ್ತಕ ಪರಿಶೀಲಕರು\n(Book In-Charge)', margin, y, { width: sigWidth, align: 'center' });
+      doc.text('ಪ್ರಧಾನ ಕಾರ್ಯದರ್ಶಿ\n(General Secretary)', margin + sigWidth, y, { width: sigWidth, align: 'center' });
+      doc.text('ಅಧ್ಯಕ್ಷರು\n(President)', margin + sigWidth * 2, y, { width: sigWidth, align: 'center' });
 
       // Page Footers across all pages
       const range = doc.bufferedPageRange();
       for (let i = range.start; i < range.start + range.count; i++) {
         doc.switchToPage(i);
         doc.fillColor('#9CA3AF').fontSize(7.5).text(
-          `Page ${i + 1} of ${range.count}  |  Sri Satya Ganapati Vrata - Najagara Ganeshotsava`,
+          `Page ${i + 1} of ${range.count}  |  Sri Satya Ganapati Vrata - Book-wise Devotees List | Najagara Ganeshotsava`,
           margin,
           pageHeight - 20,
           { align: 'center', width: contentWidth }

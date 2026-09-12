@@ -17,8 +17,10 @@ import {
   UserCheck,
   Clock,
   XCircle,
-  MapPin
+  MapPin,
+  ArrowUpDown
 } from 'lucide-react';
+import { naturalCompareBookNo } from '../utils/pdfExport';
 
 interface Volunteer {
   _id: string;
@@ -61,11 +63,13 @@ export const AdminPrasada: React.FC = () => {
   const [isDeliveryOpen, setIsDeliveryOpen] = useState(false);
   const [togglingDelivery, setTogglingDelivery] = useState(false);
 
-  // Filters
+  // Filters & Sorting
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [volunteerFilter, setVolunteerFilter] = useState('all');
   const [placeFilter, setPlaceFilter] = useState('all');
+  const [sortBy, setSortBy] = useState<'book' | 'place' | 'name' | 'status'>('book');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     fetchDeliveries();
@@ -74,8 +78,8 @@ export const AdminPrasada: React.FC = () => {
     }).catch(err => console.error(err));
   }, []);
 
-  const fetchDeliveries = async () => {
-    setLoading(true);
+  const fetchDeliveries = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await api.get('/prasada');
       if (res.data.status === 'success') {
@@ -86,7 +90,7 @@ export const AdminPrasada: React.FC = () => {
       console.error(err);
       showToast('Failed to fetch prasada deliveries.', 'error');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -107,7 +111,7 @@ export const AdminPrasada: React.FC = () => {
             : 'Prasada Delivery is now CLOSED. Status updates are locked.',
           'success'
         );
-        fetchDeliveries();
+        fetchDeliveries(true);
       }
     } catch (err) {
       console.error(err);
@@ -166,7 +170,7 @@ export const AdminPrasada: React.FC = () => {
   }, [deliveries]);
 
   const filteredDeliveries = useMemo(() => {
-    return deliveries.filter(del => {
+    const list = deliveries.filter(del => {
       const p = del.participant;
       const devoteeName = `${p?.firstName || ''} ${p?.lastName || ''}`.trim() || del.homeName || '';
       const book = p?.bookNo || p?.notes || '';
@@ -186,7 +190,49 @@ export const AdminPrasada: React.FC = () => {
       if (placeFilter !== 'all' && (del.place?._id !== placeFilter && del.place?.name !== placeFilter)) return false;
       return true;
     });
-  }, [deliveries, searchQuery, statusFilter, volunteerFilter, placeFilter]);
+
+    return list.sort((a, b) => {
+      let cmp = 0;
+      if (sortBy === 'book') {
+        const bookA = (a.participant?.bookNo || a.participant?.notes || '').trim();
+        const bookB = (b.participant?.bookNo || b.participant?.notes || '').trim();
+        cmp = naturalCompareBookNo(bookA, bookB);
+      } else if (sortBy === 'place') {
+        const placeA = (a.place?.nameKannada || a.place?.name || '').trim();
+        const placeB = (b.place?.nameKannada || b.place?.name || '').trim();
+        cmp = placeA.localeCompare(placeB);
+      } else if (sortBy === 'name') {
+        const nameA = `${a.participant?.firstName || ''} ${a.participant?.lastName || ''}`.trim() || a.homeName || '';
+        const nameB = `${b.participant?.firstName || ''} ${b.participant?.lastName || ''}`.trim() || b.homeName || '';
+        cmp = nameA.localeCompare(nameB);
+      } else if (sortBy === 'status') {
+        const statusRank: Record<string, number> = {
+          'PENDING': 1,
+          'ASSIGNED': 2,
+          'OUT_FOR_DELIVERY': 3,
+          'DELIVERED': 4,
+          'UNABLE_TO_DELIVER': 5
+        };
+        const rankA = statusRank[a.status] || 99;
+        const rankB = statusRank[b.status] || 99;
+        cmp = rankA - rankB;
+      }
+
+      // Tie breaker: Book No, then Name
+      if (cmp === 0 && sortBy !== 'book') {
+        const bookA = (a.participant?.bookNo || a.participant?.notes || '').trim();
+        const bookB = (b.participant?.bookNo || b.participant?.notes || '').trim();
+        cmp = naturalCompareBookNo(bookA, bookB);
+      }
+      if (cmp === 0) {
+        const nameA = `${a.participant?.firstName || ''} ${a.participant?.lastName || ''}`.trim() || a.homeName || '';
+        const nameB = `${b.participant?.firstName || ''} ${b.participant?.lastName || ''}`.trim() || b.homeName || '';
+        cmp = nameA.localeCompare(nameB);
+      }
+
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+  }, [deliveries, searchQuery, statusFilter, volunteerFilter, placeFilter, sortBy, sortOrder]);
 
   const counts = useMemo(() => {
     return {
@@ -240,7 +286,8 @@ export const AdminPrasada: React.FC = () => {
           </p>
         </div>
         <button
-          onClick={fetchDeliveries}
+          type="button"
+          onClick={() => fetchDeliveries()}
           className="self-start sm:self-auto px-3 py-2 border border-warm-dark hover:bg-warm rounded-lg text-charcoal-light hover:text-charcoal inline-flex items-center gap-2 text-xs font-bold uppercase transition shadow-sm"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin text-primary' : ''}`} />
@@ -411,21 +458,50 @@ export const AdminPrasada: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-xs text-charcoal-light px-1">
-          <span>Showing <b>{filteredDeliveries.length}</b> of <b>{deliveries.length}</b> registered devotees</span>
-          {(searchQuery || statusFilter !== 'all' || placeFilter !== 'all' || volunteerFilter !== 'all') && (
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setStatusFilter('all');
-                setPlaceFilter('all');
-                setVolunteerFilter('all');
-              }}
-              className="text-primary font-bold hover:underline"
+        {/* Sorting Controls & Stats Row */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-warm-dark/50 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-charcoal-light flex items-center gap-1">
+              <ArrowUpDown className="h-3.5 w-3.5 text-primary" />
+              <span>Sort By:</span>
+            </span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="bg-warm/60 border border-warm-dark rounded-xl px-2.5 py-1.5 font-bold text-charcoal outline-none focus:border-accent"
             >
-              Clear filters
+              <option value="book">Book No (ಪುಸ್ತಕ ಸಂಖ್ಯೆ)</option>
+              <option value="place">Place / Area (ಸ್ಥಳ)</option>
+              <option value="name">Devotee Name (ಹೆಸರು)</option>
+              <option value="status">Delivery Status (ವಿತರಣಾ ಸ್ಥಿತಿ)</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+              className="px-2.5 py-1.5 bg-warm hover:bg-warm-dark/60 rounded-xl border border-warm-dark font-bold text-charcoal transition"
+              title="Toggle Ascending / Descending"
+            >
+              {sortOrder === 'asc' ? '▲ Asc (1-9, A-Z)' : '▼ Desc (9-1, Z-A)'}
             </button>
-          )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span>Showing <b>{filteredDeliveries.length}</b> of <b>{deliveries.length}</b> registered devotees</span>
+            {(searchQuery || statusFilter !== 'all' || placeFilter !== 'all' || volunteerFilter !== 'all') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setStatusFilter('all');
+                  setPlaceFilter('all');
+                  setVolunteerFilter('all');
+                }}
+                className="text-primary font-bold hover:underline"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

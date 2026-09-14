@@ -1,7 +1,25 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
-import { Truck, CheckCircle2, AlertCircle, Clock, MapPin, Search, BookOpen, RefreshCw, XCircle, Sparkles, UserCheck, ArrowUpDown } from 'lucide-react';
+import {
+  Truck,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  MapPin,
+  Search,
+  BookOpen,
+  RefreshCw,
+  XCircle,
+  Sparkles,
+  UserCheck,
+  ArrowUpDown,
+  ChevronDown,
+  ChevronUp,
+  Phone,
+  Check,
+  X
+} from 'lucide-react';
 import { naturalCompareBookNo } from '../utils/pdfExport';
 
 interface Stats {
@@ -61,6 +79,76 @@ export const PrasadaView: React.FC = () => {
   const [sortBy, setSortBy] = useState<'book' | 'place' | 'name' | 'status'>('book');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [isDeliveryOpen, setIsDeliveryOpen] = useState(false);
+
+  // Area Breakdown Clickable States
+  const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
+  const [areaDetailTab, setAreaDetailTab] = useState<'ALL' | 'DELIVERED' | 'NOT_DELIVERED'>('ALL');
+  const [areaSearch, setAreaSearch] = useState('');
+
+  const handleToggleArea = (
+    placeId: string,
+    tab: 'ALL' | 'DELIVERED' | 'NOT_DELIVERED' = 'ALL',
+    e?: React.MouseEvent
+  ) => {
+    if (e) e.stopPropagation();
+    if (selectedAreaId === placeId && areaDetailTab === tab) {
+      setSelectedAreaId(null);
+    } else {
+      setSelectedAreaId(placeId);
+      setAreaDetailTab(tab);
+      setAreaSearch('');
+    }
+  };
+
+  const getDeliveriesForArea = (area: AreaBreakdown): Delivery[] => {
+    return deliveries.filter((del) => {
+      const pId1 = del.place?._id;
+      const pId2 = del.participant?.place?._id;
+      const targetId = area.placeId;
+      if (targetId) {
+        if (pId1 && String(pId1) === String(targetId)) return true;
+        if (pId2 && String(pId2) === String(targetId)) return true;
+      }
+
+      const pName1 = del.place?.name;
+      const pName2 = del.participant?.place?.name;
+      const targetName = area.name;
+      if (targetName) {
+        if (pName1 && pName1.toLowerCase().trim() === targetName.toLowerCase().trim()) return true;
+        if (pName2 && pName2.toLowerCase().trim() === targetName.toLowerCase().trim()) return true;
+      }
+
+      const pKn1 = del.place?.nameKannada;
+      const pKn2 = del.participant?.place?.nameKannada;
+      const targetKn = area.nameKannada;
+      if (targetKn) {
+        if (pKn1 && pKn1.trim() === targetKn.trim()) return true;
+        if (pKn2 && pKn2.trim() === targetKn.trim()) return true;
+      }
+
+      return false;
+    });
+  };
+
+  const getFilteredAreaDeliveries = (area: AreaBreakdown): Delivery[] => {
+    const list = getDeliveriesForArea(area);
+    return list.filter((del) => {
+      if (areaDetailTab === 'DELIVERED' && del.status !== 'DELIVERED') return false;
+      if (areaDetailTab === 'NOT_DELIVERED' && del.status === 'DELIVERED') return false;
+
+      if (areaSearch.trim()) {
+        const q = areaSearch.toLowerCase().trim();
+        const p = del.participant;
+        const name = `${p?.firstName || ''} ${p?.lastName || ''}`.toLowerCase();
+        const home = (del.homeName || p?.homeName || '').toLowerCase();
+        const book = (p?.bookNo || p?.notes || '').toLowerCase();
+        const phone = (p?.phone || '').toLowerCase();
+        return name.includes(q) || home.includes(q) || book.includes(q) || phone.includes(q);
+      }
+
+      return true;
+    });
+  };
 
   useEffect(() => {
     fetchData();
@@ -153,7 +241,14 @@ export const PrasadaView: React.FC = () => {
       }
 
       if (statusFilter !== 'all' && del.status !== statusFilter) return false;
-      if (placeFilter !== 'all' && (del.place?._id !== placeFilter && del.place?.name !== placeFilter)) return false;
+      if (placeFilter !== 'all') {
+        const matchPlace =
+          del.place?._id === placeFilter ||
+          del.place?.name === placeFilter ||
+          del.participant?.place?._id === placeFilter ||
+          del.participant?.place?.name === placeFilter;
+        if (!matchPlace) return false;
+      }
       return true;
     });
 
@@ -272,45 +367,410 @@ export const PrasadaView: React.FC = () => {
       {/* Area Breakdown Section */}
       {areaBreakdown.length > 0 && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between border-b border-warm-dark pb-2">
-            <h2 className="text-lg sm:text-xl font-extrabold text-primary">
-              {language === 'kn' ? 'ಪ್ರದೇಶವಾರು ವಿತರಣಾ ವಿವರ (Area Breakdown)' : 'Area Breakdown Progress'}
-            </h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-warm-dark pb-2">
+            <div>
+              <h2 className="text-lg sm:text-xl font-extrabold text-primary flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-primary" />
+                <span>{language === 'kn' ? 'ಪ್ರದೇಶವಾರು ವಿತರಣಾ ವಿವರ (Area Breakdown)' : 'Area Breakdown Progress'}</span>
+              </h2>
+              <p className="text-xs text-charcoal-light mt-0.5">
+                {language === 'kn'
+                  ? 'ಪ್ರದೇಶದ ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡಿ ತಲುಪಿದ ಮತ್ತು ಬಾಕಿ ಇರುವ ಭಕ್ತಾದಿಗಳ ಪಟ್ಟಿಯನ್ನು ಪರಿಶೀಲಿಸಿ.'
+                  : 'Click on any area card to see delivered and pending devotee details.'}
+              </p>
+            </div>
+            {selectedAreaId && (
+              <button
+                type="button"
+                onClick={() => setSelectedAreaId(null)}
+                className="self-start sm:self-auto text-xs font-bold text-primary hover:underline inline-flex items-center gap-1"
+              >
+                <X className="h-3.5 w-3.5" />
+                <span>{language === 'kn' ? 'ಎಲ್ಲವನ್ನೂ ಮುಚ್ಚಿ' : 'Close Active View'}</span>
+              </button>
+            )}
           </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {areaBreakdown.map((area) => {
-              const areaProgress = area.total > 0 ? Math.round((area.delivered / area.total) * 100) : 0;
+              const areaKey = area.placeId || area.name;
+              const isSelected = selectedAreaId === areaKey;
+              const areaDeliveries = getDeliveriesForArea(area);
+              const deliveredList = areaDeliveries.filter((d) => d.status === 'DELIVERED');
+              const notDeliveredList = areaDeliveries.filter((d) => d.status !== 'DELIVERED');
+              const actualDeliveredCount = areaDeliveries.length > 0 ? deliveredList.length : area.delivered;
+              const actualNotDeliveredCount = areaDeliveries.length > 0 ? notDeliveredList.length : area.pending;
+              const actualTotalCount = areaDeliveries.length > 0 ? areaDeliveries.length : area.total;
+              const areaProgress = actualTotalCount > 0 ? Math.round((actualDeliveredCount / actualTotalCount) * 100) : 0;
+              const filteredList = isSelected ? getFilteredAreaDeliveries(area) : [];
+
               return (
-                <div key={area.placeId} className="bg-white rounded-2xl border border-warm-dark p-4 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between border-b border-warm-dark pb-2">
-                    <h3 className="font-bold text-charcoal text-base">
-                      {language === 'kn' ? area.nameKannada : area.name}
-                    </h3>
-                    <span className="text-xs text-emerald-700 font-extrabold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                      {areaProgress}%
-                    </span>
+                <div
+                  key={areaKey}
+                  className={`bg-white rounded-2xl border transition-all duration-300 shadow-sm ${
+                    isSelected
+                      ? 'sm:col-span-2 md:col-span-3 border-primary/60 ring-2 ring-primary/20 shadow-md'
+                      : 'border-warm-dark hover:border-primary/40 hover:shadow-md'
+                  }`}
+                >
+                  {/* Card Header */}
+                  <div
+                    onClick={(e) => handleToggleArea(areaKey, 'ALL', e)}
+                    className="p-4 cursor-pointer select-none flex items-center justify-between gap-3 border-b border-warm/80"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`p-2 rounded-xl shrink-0 ${isSelected ? 'bg-primary text-white' : 'bg-warm text-primary'}`}>
+                        <MapPin className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-extrabold text-charcoal text-base truncate">
+                          {language === 'kn' ? area.nameKannada || area.name : area.name}
+                        </h3>
+                        {area.nameKannada && area.name && area.nameKannada !== area.name && (
+                          <span className="text-[11px] text-charcoal-light block truncate">
+                            {language === 'kn' ? area.name : area.nameKannada}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-emerald-700 font-extrabold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                        {areaProgress}%
+                      </span>
+                      <button
+                        type="button"
+                        aria-label="Toggle area details"
+                        className={`p-1.5 rounded-lg text-charcoal-light hover:text-charcoal hover:bg-warm transition ${
+                          isSelected ? 'bg-warm text-primary rotate-180' : ''
+                        }`}
+                      >
+                        <ChevronDown className="h-4 w-4 transition-transform" />
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-3 text-center gap-2">
-                    <div className="p-2 bg-warm rounded-xl border border-warm-dark">
-                      <span className="text-[9px] text-charcoal-light uppercase font-bold block">
-                        {language === 'kn' ? 'ಒಟ್ಟು' : 'Total'}
-                      </span>
-                      <span className="font-extrabold text-charcoal block">{area.total}</span>
+                  {/* 3 Metric Summary Boxes */}
+                  <div className="p-4 pt-3 space-y-3">
+                    <div className="grid grid-cols-3 text-center gap-2">
+                      {/* Total */}
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleArea(areaKey, 'ALL', e)}
+                        className={`p-2.5 rounded-xl border text-center transition-all ${
+                          isSelected && areaDetailTab === 'ALL'
+                            ? 'bg-warm-dark/40 border-charcoal/30 ring-1 ring-charcoal/20'
+                            : 'bg-warm hover:bg-warm-dark/30 border-warm-dark cursor-pointer'
+                        }`}
+                        title={language === 'kn' ? 'ಎಲ್ಲಾ ಭಕ್ತಾದಿಗಳನ್ನು ನೋಡಿ' : 'View all devotees'}
+                      >
+                        <span className="text-[10px] text-charcoal-light uppercase font-bold block">
+                          {language === 'kn' ? 'ಒಟ್ಟು' : 'Total'}
+                        </span>
+                        <span className="font-extrabold text-charcoal text-base sm:text-lg block mt-0.5">
+                          {actualTotalCount}
+                        </span>
+                      </button>
+
+                      {/* Delivered */}
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleArea(areaKey, 'DELIVERED', e)}
+                        className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                          isSelected && areaDetailTab === 'DELIVERED'
+                            ? 'bg-emerald-100 border-emerald-400 ring-2 ring-emerald-300'
+                            : 'bg-emerald-50/80 hover:bg-emerald-100/70 border-emerald-200 text-emerald-800'
+                        }`}
+                        title={language === 'kn' ? 'ತಲುಪಿದ ಭಕ್ತಾದಿಗಳನ್ನು ನೋಡಿ' : 'View delivered devotees'}
+                      >
+                        <span className="text-[10px] text-emerald-700 uppercase font-bold flex items-center justify-center gap-1">
+                          <Check className="h-3 w-3" />
+                          <span>{language === 'kn' ? 'ತಲುಪಿದೆ' : 'Done'}</span>
+                        </span>
+                        <span className="font-extrabold text-emerald-800 text-base sm:text-lg block mt-0.5">
+                          {actualDeliveredCount}
+                        </span>
+                      </button>
+
+                      {/* Not Delivered / Pending */}
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleArea(areaKey, 'NOT_DELIVERED', e)}
+                        className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                          isSelected && areaDetailTab === 'NOT_DELIVERED'
+                            ? 'bg-amber-100 border-amber-400 ring-2 ring-amber-300'
+                            : 'bg-amber-50/80 hover:bg-amber-100/70 border-amber-200 text-amber-800'
+                        }`}
+                        title={language === 'kn' ? 'ಬಾಕಿ / ತಲುಪಿಸದ ಭಕ್ತಾದಿಗಳನ್ನು ನೋಡಿ' : 'View pending / not delivered devotees'}
+                      >
+                        <span className="text-[10px] text-amber-700 uppercase font-bold flex items-center justify-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          <span>{language === 'kn' ? 'ಬಾಕಿ' : 'Left'}</span>
+                        </span>
+                        <span className="font-extrabold text-amber-800 text-base sm:text-lg block mt-0.5">
+                          {actualNotDeliveredCount}
+                        </span>
+                      </button>
                     </div>
-                    <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-800">
-                      <span className="text-[9px] text-emerald-600 uppercase font-bold block">
-                        {language === 'kn' ? 'ತಲುಪಿದೆ' : 'Done'}
-                      </span>
-                      <span className="font-extrabold block">{area.delivered}</span>
-                    </div>
-                    <div className="p-2 bg-slate-50 rounded-xl border border-slate-200 text-slate-800">
-                      <span className="text-[9px] text-slate-500 uppercase font-bold block">
-                        {language === 'kn' ? 'ಬಾಕಿ' : 'Left'}
-                      </span>
-                      <span className="font-extrabold block">{area.pending}</span>
+
+                    {/* Progress Bar inside Card */}
+                    <div className="space-y-1">
+                      <div className="w-full bg-warm rounded-full h-2 overflow-hidden border border-warm-dark/50">
+                        <div
+                          className="bg-emerald-600 h-full transition-all duration-500 rounded-full"
+                          style={{ width: `${areaProgress}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-charcoal-light font-semibold">
+                        <span>{language === 'kn' ? `${actualDeliveredCount} ತಲುಪಿದೆ` : `${actualDeliveredCount} Delivered`}</span>
+                        <span>{language === 'kn' ? `${actualNotDeliveredCount} ಬಾಕಿ` : `${actualNotDeliveredCount} Pending`}</span>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Expanded Detail View */}
+                  {isSelected && (
+                    <div className="border-t border-warm-dark p-4 sm:p-5 bg-warm/30 space-y-4 rounded-b-2xl">
+                      {/* Area Status Highlights Banner */}
+                      <div className="bg-white rounded-xl border border-warm-dark p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+                        <div className="flex items-center gap-2">
+                          <div className="h-3 w-3 rounded-full bg-primary" />
+                          <h4 className="font-extrabold text-charcoal text-sm sm:text-base">
+                            {language === 'kn' ? area.nameKannada || area.name : area.name} —{' '}
+                            <span className="text-primary">
+                              {language === 'kn' ? 'ವಿತರಣಾ ವಿವರ ಮತ್ತು ಭಕ್ತಾದಿಗಳ ಪಟ್ಟಿ' : 'Delivery Details & Devotee Roster'}
+                            </span>
+                          </h4>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs font-bold">
+                          <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            {language === 'kn' ? `ತಲುಪಿದೆ: ${actualDeliveredCount}` : `Delivered: ${actualDeliveredCount}`}
+                          </span>
+                          <span className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">
+                            {language === 'kn' ? `ಬಾಕಿ: ${actualNotDeliveredCount}` : `Not Delivered: ${actualNotDeliveredCount}`}
+                          </span>
+                          <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
+                            {language === 'kn' ? `ಒಟ್ಟು: ${actualTotalCount}` : `Total: ${actualTotalCount}`}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Filter Tabs & In-Area Search */}
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                        {/* Status Filter Tabs */}
+                        <div className="inline-flex rounded-xl bg-warm p-1 border border-warm-dark self-start">
+                          <button
+                            type="button"
+                            onClick={() => setAreaDetailTab('ALL')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                              areaDetailTab === 'ALL'
+                                ? 'bg-white text-primary shadow-xs border border-warm-dark'
+                                : 'text-charcoal-light hover:text-charcoal'
+                            }`}
+                          >
+                            {language === 'kn' ? `ಎಲ್ಲಾ (${actualTotalCount})` : `All (${actualTotalCount})`}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAreaDetailTab('DELIVERED')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition flex items-center gap-1.5 cursor-pointer ${
+                              areaDetailTab === 'DELIVERED'
+                                ? 'bg-emerald-600 text-white shadow-xs'
+                                : 'text-emerald-700 hover:bg-emerald-50'
+                            }`}
+                          >
+                            <Check className="h-3 w-3" />
+                            <span>{language === 'kn' ? `ತಲುಪಿದೆ (${actualDeliveredCount})` : `Delivered (${actualDeliveredCount})`}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAreaDetailTab('NOT_DELIVERED')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition flex items-center gap-1.5 cursor-pointer ${
+                              areaDetailTab === 'NOT_DELIVERED'
+                                ? 'bg-amber-600 text-white shadow-xs'
+                                : 'text-amber-700 hover:bg-amber-50'
+                            }`}
+                          >
+                            <Clock className="h-3 w-3" />
+                            <span>{language === 'kn' ? `ತಲುಪಿಸಿಲ್ಲ / ಬಾಕಿ (${actualNotDeliveredCount})` : `Not Delivered (${actualNotDeliveredCount})`}</span>
+                          </button>
+                        </div>
+
+                        {/* Search Input within this Area */}
+                        <div className="relative flex-1 max-w-xs">
+                          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-charcoal-light" />
+                          <input
+                            type="text"
+                            placeholder={language === 'kn' ? 'ಹೆಸರು, ಮನೆತನ, ಪುಸ್ತಕ ಸಂ...' : 'Search devotee, book no...'}
+                            value={areaSearch}
+                            onChange={(e) => setAreaSearch(e.target.value)}
+                            className="w-full bg-white border border-warm-dark rounded-xl pl-9 pr-3 py-1.5 text-xs font-medium text-charcoal outline-none focus:border-primary shadow-xs"
+                          />
+                          {areaSearch && (
+                            <button
+                              type="button"
+                              onClick={() => setAreaSearch('')}
+                              className="absolute right-2.5 top-2 text-xs text-charcoal-light hover:text-charcoal"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Devotees List */}
+                      <div className="bg-white rounded-xl border border-warm-dark overflow-hidden shadow-xs">
+                        {filteredList.length === 0 ? (
+                          <div className="p-8 text-center space-y-2">
+                            <AlertCircle className="h-7 w-7 text-charcoal-light mx-auto opacity-50" />
+                            <p className="text-xs sm:text-sm font-bold text-charcoal">
+                              {language === 'kn'
+                                ? areaDetailTab === 'NOT_DELIVERED'
+                                  ? 'ಈ ಪ್ರದೇಶದಲ್ಲಿ ಯಾವುದೇ ಪ್ರಸಾದ ವಿತರಣೆ ಬಾಕಿ ಉಳಿದಿಲ್ಲ! (ಎಲ್ಲವೂ ತಲುಪಿದೆ 🎉)'
+                                  : areaDetailTab === 'DELIVERED'
+                                  ? 'ಈ ಪ್ರದೇಶದಲ್ಲಿ ಇನ್ನೂ ಯಾವುದೇ ಪ್ರಸಾದ ತಲುಪಿಸಲಾಗಿಲ್ಲ.'
+                                  : 'ಯಾವುದೇ ಭಕ್ತಾದಿಗಳು ಕಂಡುಬಂದಿಲ್ಲ.'
+                                : areaDetailTab === 'NOT_DELIVERED'
+                                ? 'All deliveries completed for this area! 🎉'
+                                : 'No devotees found matching criteria.'}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="max-h-80 overflow-y-auto divide-y divide-warm-dark/60">
+                            {filteredList.map((del, idx) => {
+                              const p = del.participant;
+                              const devoteeName =
+                                `${p?.firstName || ''} ${p?.lastName || ''}`.trim() ||
+                                del.homeName ||
+                                p?.homeName ||
+                                (language === 'kn' ? 'ಹೆಸರು ದಾಖಲಾಗಿಲ್ಲ' : 'Devotee');
+                              const bookNo = (p?.bookNo || p?.notes || '').trim();
+                              const homeName = del.homeName || p?.homeName;
+                              const isDelivered = del.status === 'DELIVERED';
+
+                              return (
+                                <div
+                                  key={del._id || idx}
+                                  className={`p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 transition ${
+                                    isDelivered ? 'hover:bg-emerald-50/40' : 'hover:bg-amber-50/40'
+                                  }`}
+                                >
+                                  {/* Left: Name, Book No, Home */}
+                                  <div className="space-y-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="font-extrabold text-charcoal text-sm">
+                                        {devoteeName}
+                                      </span>
+
+                                      {bookNo && (
+                                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-primary bg-warm px-2 py-0.5 rounded-md border border-warm-dark">
+                                          <BookOpen className="h-3 w-3" />
+                                          <span>{language === 'kn' ? `ಪುಸ್ತಕ: ${bookNo}` : `Book: ${bookNo}`}</span>
+                                        </span>
+                                      )}
+
+                                      {homeName && homeName !== devoteeName && (
+                                        <span className="text-[11px] font-medium text-charcoal-light bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                                          {homeName}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {/* Contact & Volunteer */}
+                                    <div className="flex items-center gap-3 text-xs text-charcoal-light flex-wrap">
+                                      {p?.phone && (
+                                        <a
+                                          href={`tel:${p.phone}`}
+                                          className="inline-flex items-center gap-1 text-emerald-700 hover:text-emerald-800 font-semibold"
+                                          title={language === 'kn' ? 'ಕರೆ ಮಾಡಿ' : 'Call'}
+                                        >
+                                          <Phone className="h-3 w-3" />
+                                          <span>{p.phone}</span>
+                                        </a>
+                                      )}
+                                      {del.assignedVolunteer?.name && (
+                                        <span className="inline-flex items-center gap-1 text-[11px]">
+                                          <UserCheck className="h-3 w-3 text-primary" />
+                                          <span>{del.assignedVolunteer.name}</span>
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Right: Status Badge & Delivery Time */}
+                                  <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1 shrink-0">
+                                    <span
+                                      className={`px-2.5 py-1 rounded-full text-xs font-bold border inline-flex items-center gap-1.5 ${
+                                        isDelivered
+                                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                          : 'bg-amber-100 text-amber-800 border-amber-300'
+                                      }`}
+                                    >
+                                      {isDelivered ? (
+                                        <>
+                                          <Check className="h-3.5 w-3.5 text-emerald-700" />
+                                          <span>{language === 'kn' ? 'ತಲುಪಿಸಲಾಗಿದೆ' : 'Delivered'}</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Clock className="h-3.5 w-3.5 text-amber-700" />
+                                          <span>{language === 'kn' ? 'ವಿತರಣೆ ಬಾಕಿ' : 'Pending'}</span>
+                                        </>
+                                      )}
+                                    </span>
+
+                                    {isDelivered && del.deliveredAt && (
+                                      <span className="text-[10px] text-charcoal-light font-medium">
+                                        {new Date(del.deliveredAt).toLocaleTimeString([], {
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Footer Actions */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPlaceFilter(area.placeId || area.name);
+                            if (areaDetailTab === 'DELIVERED') setStatusFilter('DELIVERED');
+                            else if (areaDetailTab === 'NOT_DELIVERED') setStatusFilter('PENDING');
+                            const el = document.getElementById('devotee-directory');
+                            if (el) el.scrollIntoView({ behavior: 'smooth' });
+                          }}
+                          className="px-3 py-1.5 rounded-xl border border-primary/40 bg-white hover:bg-primary/5 text-primary text-xs font-bold inline-flex items-center gap-1.5 transition cursor-pointer"
+                        >
+                          <BookOpen className="h-3.5 w-3.5" />
+                          <span>
+                            {language === 'kn'
+                              ? `ಮುಖ್ಯ ಪಟ್ಟಿಯಲ್ಲಿ ಈ ಪ್ರದೇಶವನ್ನು ಫಿಲ್ಟರ್ ಮಾಡಿ (${area.nameKannada || area.name})`
+                              : `Filter this area in Main Directory (${area.name})`}
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedAreaId(null);
+                          }}
+                          className="px-3 py-1.5 rounded-xl border border-warm-dark bg-white hover:bg-warm text-charcoal text-xs font-bold inline-flex items-center gap-1.5 transition ml-auto cursor-pointer"
+                        >
+                          <ChevronUp className="h-3.5 w-3.5" />
+                          <span>{language === 'kn' ? 'ವಿವರಗಳನ್ನು ಮರೆಮಾಡಿ' : 'Close Details'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -319,7 +779,7 @@ export const PrasadaView: React.FC = () => {
       )}
 
       {/* Devotees Delivery Directory */}
-      <div className="space-y-4">
+      <div id="devotee-directory" className="space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-warm-dark pb-3">
           <div>
             <h2 className="text-xl font-extrabold text-primary">

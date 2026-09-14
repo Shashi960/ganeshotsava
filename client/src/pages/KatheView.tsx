@@ -265,15 +265,19 @@ export const KatheView: React.FC = () => {
             if (exists) return prev;
             return [newParticipant, ...prev];
           });
+          // If a new place was created from customPlace, update place to the newly created place ID
+          if (place === 'other' && newParticipant.place && typeof newParticipant.place === 'object') {
+            setPlace(newParticipant.place._id);
+            setCustomPlace('');
+          }
         }
 
-        // Clear all text fields so form is immediately blank and ready for the next entry
+        // Clear devotee-specific fields, but retain bookNo and place for quick consecutive registration
         setName('');
         setHomeName('');
         setAddress('');
-        setCustomPlace('');
         setPhone('');
-        setBookNo('');
+        // Retain bookNo and place so user does not need to re-enter them
 
         // Refresh list and places in background
         fetchParticipants(true);
@@ -554,16 +558,28 @@ export const KatheView: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-charcoal block">
-                    {language === 'kn' ? 'ಪುಸ್ತಕ ಸಂಖ್ಯೆ (Book No)' : 'Book Number'} <span className="text-rose-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-charcoal block">
+                      {language === 'kn' ? 'ಪುಸ್ತಕ ಸಂಖ್ಯೆ (Book No)' : 'Book Number'} <span className="text-rose-500">*</span>
+                    </label>
+                    {bookNo && (
+                      <button
+                        type="button"
+                        onClick={() => setBookNo('')}
+                        className="text-[10px] text-charcoal-light hover:text-rose-600 transition font-semibold"
+                        title={language === 'kn' ? 'ಪುಸ್ತಕ ಸಂಖ್ಯೆ ತೆರವುಗೊಳಿಸಿ' : 'Clear book number'}
+                      >
+                        {language === 'kn' ? 'ತೆರವುಗೊಳಿಸಿ' : 'Clear'}
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="text"
                     required
                     placeholder={language === 'kn' ? 'ಉದಾ. Book 12 / Receipt 45' : 'e.g. Book 12 / Receipt 45'}
                     value={bookNo}
                     onChange={(e) => setBookNo(e.target.value)}
-                    className="w-full bg-warm border border-warm-dark rounded-lg px-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
+                    className="w-full bg-warm border border-warm-dark rounded-lg px-3 py-2 text-sm text-charcoal outline-none focus:border-accent font-semibold"
                   />
                 </div>
               </div>

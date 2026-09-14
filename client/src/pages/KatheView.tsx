@@ -547,11 +547,11 @@ export const KatheView: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-charcoal block">
-                    {language === 'kn' ? 'ಮನೆತನ / ಮನೆ ಹೆಸರು' : 'Home / Family Name'}
+                    {language === 'kn' ? 'ಇತರ ವಿವರಗಳು (Other Details)' : 'Other Details'}
                   </label>
                   <input
                     type="text"
-                    placeholder={language === 'kn' ? 'ಉದಾ. ಜ್ಯೋತಿ ನಿಲಯ / Jyothi House' : 'e.g. Jyothi House'}
+                    placeholder={language === 'kn' ? 'ಉದಾ. ಅಂಗಡಿ, ಮನೆತನ, ಇತ್ಯಾದಿ / e.g. Shop, House' : 'e.g. Shop, Landmark, House, etc.'}
                     value={homeName}
                     onChange={(e) => setHomeName(e.target.value)}
                     className="w-full bg-warm border border-warm-dark rounded-lg px-3 py-2 text-sm text-charcoal outline-none focus:border-accent"
@@ -833,7 +833,7 @@ export const KatheView: React.FC = () => {
                         <td className="p-4 font-bold text-charcoal">
                           <div>
                             {`${p.firstName || ''} ${p.lastName || ''}`.trim()}
-                            {p.homeName && <span className="block text-xs font-normal text-charcoal-light">{language === 'kn' ? 'ಮನೆತನ: ' : 'Family: '}{p.homeName}</span>}
+                            {p.homeName && <span className="block text-xs font-normal text-charcoal-light">{language === 'kn' ? 'ವಿವರ: ' : 'Details: '}{p.homeName}</span>}
                           </div>
                         </td>
                         <td className="p-4 text-charcoal-light font-medium font-kannada">
@@ -900,7 +900,7 @@ export const KatheView: React.FC = () => {
                       </div>
                       {p.homeName && (
                         <p className="text-xs text-charcoal-light mt-0.5">
-                          {language === 'kn' ? 'ಮನೆತನ: ' : 'Family: '}<span className="font-semibold text-charcoal">{p.homeName}</span>
+                          {language === 'kn' ? 'ವಿವರ: ' : 'Details: '}<span className="font-semibold text-charcoal">{p.homeName}</span>
                         </p>
                       )}
                     </div>
@@ -1007,13 +1007,13 @@ export const KatheView: React.FC = () => {
 
                 <div className="space-y-1">
                   <label className="font-bold text-xs block text-charcoal">
-                    {language === 'kn' ? 'ಮನೆಯ ಹೆಸರು (Family / House Name)' : 'Family / House Name'}
+                    {language === 'kn' ? 'ಇತರ ವಿವರಗಳು (Other Details)' : 'Other Details'}
                   </label>
                   <input
                     type="text"
                     value={editHomeName}
                     onChange={(e) => setEditHomeName(e.target.value)}
-                    placeholder="e.g. Kadur / Badiger"
+                    placeholder="e.g. Shop, Landmark, Family"
                     className="w-full bg-warm border border-warm-dark rounded-xl p-2.5 outline-none focus:border-accent"
                   />
                 </div>

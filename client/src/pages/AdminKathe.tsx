@@ -605,13 +605,13 @@ export const AdminKathe: React.FC = () => {
               {/* Family / Home Name */}
               <div className="space-y-1">
                 <label className="font-bold text-xs block">
-                  Family / Home Name (ಮನೆತನ / ಮನೆ ಹೆಸರು)
+                  Other Details (ಇತರ ವಿವರಗಳು - e.g. Shop, Landmark, Family)
                 </label>
                 <input
                   type="text"
                   value={editHomeName}
                   onChange={(e) => setEditHomeName(e.target.value)}
-                  placeholder="e.g. Kodiya Mane"
+                  placeholder="e.g. Shop, Landmark, Family / ಅಂಗಡಿ, ಮನೆತನ"
                   className="w-full bg-warm border border-warm-dark rounded-xl p-2.5 outline-none focus:border-accent"
                 />
               </div>

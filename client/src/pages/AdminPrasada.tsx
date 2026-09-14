@@ -126,34 +126,71 @@ export const AdminPrasada: React.FC = () => {
       showToast('Prasada delivery is closed by Superadmin. Status updates are disabled.', 'error');
       return;
     }
+
+    const previousDelivery = deliveries.find(d => d._id === id);
+    const previousStatus = previousDelivery?.status;
+    if (previousStatus === newStatus) return;
+
+    // Instant local optimistic update (0ms latency)
+    setDeliveries(prev => prev.map(d => {
+      if (d._id === id) {
+        return {
+          ...d,
+          status: newStatus as any,
+          deliveredAt: newStatus === 'DELIVERED' ? new Date().toISOString() : d.deliveredAt
+        };
+      }
+      return d;
+    }));
+
     try {
       const res = await api.put(`/prasada/${id}/status`, { status: newStatus });
-      if (res.data.status === 'success') {
-        showToast(`Delivery status updated to ${newStatus.replace(/_/g, ' ')}!`);
-        // Instant local update
-        setDeliveries(prev => prev.map(d => d._id === id ? { ...d, status: newStatus as any } : d));
+      if (res.data.status !== 'success') {
+        if (previousStatus) {
+          setDeliveries(prev => prev.map(d => d._id === id ? { ...d, status: previousStatus } : d));
+        }
+        showToast('Failed to update delivery status.', 'error');
       }
     } catch (error: any) {
       console.error(error);
+      if (previousStatus) {
+        setDeliveries(prev => prev.map(d => d._id === id ? { ...d, status: previousStatus } : d));
+      }
       const msg = error.response?.data?.message || 'Failed to update delivery status.';
       showToast(msg, 'error');
     }
   };
 
   const handleAssignVolunteer = async (id: string, volunteerId: string) => {
+    const previousDelivery = deliveries.find(d => d._id === id);
+    const previousVolunteer = previousDelivery?.assignedVolunteer;
+    const previousStatus = previousDelivery?.status;
+
+    // Instant local optimistic update
+    const assignedVol = volunteers.find(v => v._id === volunteerId);
+    setDeliveries(prev => prev.map(d => d._id === id ? {
+      ...d,
+      assignedVolunteer: assignedVol ? { _id: assignedVol._id, name: assignedVol.name } : undefined,
+      status: volunteerId && d.status === 'PENDING' ? 'ASSIGNED' : d.status
+    } : d));
+
     try {
       const res = await api.put(`/prasada/${id}/status`, { assignedVolunteer: volunteerId || null });
-      if (res.data.status === 'success') {
-        showToast('Volunteer assigned successfully!');
-        const assignedVol = volunteers.find(v => v._id === volunteerId);
+      if (res.data.status !== 'success') {
         setDeliveries(prev => prev.map(d => d._id === id ? {
           ...d,
-          assignedVolunteer: assignedVol ? { _id: assignedVol._id, name: assignedVol.name } : undefined,
-          status: volunteerId && d.status === 'PENDING' ? 'ASSIGNED' : d.status
+          assignedVolunteer: previousVolunteer,
+          status: previousStatus || d.status
         } : d));
+        showToast('Failed to assign volunteer.', 'error');
       }
     } catch (error) {
       console.error(error);
+      setDeliveries(prev => prev.map(d => d._id === id ? {
+        ...d,
+        assignedVolunteer: previousVolunteer,
+        status: previousStatus || d.status
+      } : d));
       showToast('Failed to assign volunteer.', 'error');
     }
   };
@@ -600,7 +637,7 @@ export const AdminPrasada: React.FC = () => {
                       type="button"
                       disabled={!canUpdateStatus}
                       onClick={() => handleUpdateStatus(del._id, 'PENDING')}
-                      className={`py-2 px-2 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1 ${
+                      className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all active:scale-95 cursor-pointer select-none flex items-center justify-center gap-1 ${
                         del.status === 'PENDING'
                           ? 'bg-slate-700 text-white border-slate-700 shadow-sm'
                           : 'bg-white hover:bg-slate-100 text-charcoal border-slate-300'
@@ -614,7 +651,7 @@ export const AdminPrasada: React.FC = () => {
                       type="button"
                       disabled={!canUpdateStatus}
                       onClick={() => handleUpdateStatus(del._id, 'OUT_FOR_DELIVERY')}
-                      className={`py-2 px-2 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1 ${
+                      className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all active:scale-95 cursor-pointer select-none flex items-center justify-center gap-1 ${
                         del.status === 'OUT_FOR_DELIVERY'
                           ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
                           : 'bg-white hover:bg-amber-50 text-charcoal border-slate-300'
@@ -628,7 +665,7 @@ export const AdminPrasada: React.FC = () => {
                       type="button"
                       disabled={!canUpdateStatus}
                       onClick={() => handleUpdateStatus(del._id, 'DELIVERED')}
-                      className={`py-2 px-2 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1 ${
+                      className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all active:scale-95 cursor-pointer select-none flex items-center justify-center gap-1 ${
                         del.status === 'DELIVERED'
                           ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                           : 'bg-white hover:bg-emerald-50 text-charcoal border-slate-300'
@@ -642,7 +679,7 @@ export const AdminPrasada: React.FC = () => {
                       type="button"
                       disabled={!canUpdateStatus}
                       onClick={() => handleUpdateStatus(del._id, 'UNABLE_TO_DELIVER')}
-                      className={`py-2 px-2 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1 ${
+                      className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all active:scale-95 cursor-pointer select-none flex items-center justify-center gap-1 ${
                         del.status === 'UNABLE_TO_DELIVER'
                           ? 'bg-rose-600 text-white border-rose-600 shadow-sm'
                           : 'bg-white hover:bg-rose-50 text-charcoal border-slate-300'

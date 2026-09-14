@@ -132,16 +132,17 @@ export const exportKatheToPdf = async (
 
       const pageWidth = 595.28;
       const pageHeight = 841.89;
-      const margin = 28;
-      const contentWidth = pageWidth - margin * 2; // 539.28
+      const margin = 20;
+      const contentWidth = pageWidth - margin * 2; // 555.28
 
       const cols = [
-        { header: 'ಕ್ರ.ಸಂ\n(SL)', width: 34, align: 'center' as const },
-        { header: 'ಭಕ್ತರ ಹೆಸರು\n(DEVOTEE NAME)', width: 170, align: 'left' as const },
-        { header: 'ಸ್ಥಳ / ಪ್ರದೇಶ\n(PLACE / AREA)', width: 105, align: 'left' as const },
-        { header: 'ಪುಸ್ತಕ ಸಂಖ್ಯೆ\n(BOOK NO)', width: 60, align: 'center' as const },
-        { header: 'ದೂರವಾಣಿ\n(PHONE)', width: 65, align: 'center' as const },
-        { header: 'ಸಂಕಲ್ಪ ಸ್ಥಿತಿ\n(STATUS)', width: 105.28, align: 'center' as const }
+        { header: 'ಕ್ರ.ಸಂ\n(SL)', width: 32, align: 'center' as const },
+        { header: 'ಭಕ್ತರ ಹೆಸರು\n(DEVOTEE NAME)', width: 155, align: 'left' as const },
+        { header: 'ಇತರ ವಿವರ\n(OTHER DETAILS)', width: 110, align: 'left' as const },
+        { header: 'ಸ್ಥಳ / ಪ್ರದೇಶ\n(PLACE / AREA)', width: 95, align: 'left' as const },
+        { header: 'ಪುಸ್ತಕ\n(BOOK)', width: 45, align: 'center' as const },
+        { header: 'ದೂರವಾಣಿ\n(PHONE)', width: 60, align: 'center' as const },
+        { header: 'ಸ್ಥಿತಿ\n(STATUS)', width: 58.28, align: 'center' as const }
       ];
 
       // Group participants by Place / Area
@@ -189,13 +190,13 @@ export const exportKatheToPdf = async (
       const currentYear = options?.year || '2026';
 
       const drawTableHeader = () => {
-        const headerHeight = 22;
+        const headerHeight = 16;
         doc.rect(margin, y, contentWidth, headerHeight).fill('#374151');
-        doc.fillColor('#FFFFFF').fontSize(7.5);
+        doc.fillColor('#FFFFFF').fontSize(7);
 
         let curX = margin;
         for (const col of cols) {
-          doc.text(col.header, curX + 2, y + 3, {
+          doc.text(col.header, curX + 2, y + 2.5, {
             width: col.width - 4,
             align: col.align
           });
@@ -204,24 +205,16 @@ export const exportKatheToPdf = async (
         y += headerHeight;
       };
 
-      const drawDocumentHeader = (isFirstPage: boolean, placeContinuation?: string) => {
+      const drawDocumentHeader = (isFirstPage: boolean) => {
         if (isFirstPage) {
-          // Document Header / Title
-          doc.fillColor('#7A1C1C').fontSize(14).text(
-            'ಶ್ರೀ ಸತ್ಯಗಣಪತಿ ವ್ರತ - ಸ್ಥಳವಾರು ನೋಂದಾಯಿತ ಭಕ್ತರ ಪಟ್ಟಿ',
+          // Minimal Page 1 Header (clean & compact)
+          doc.fillColor('#7A1C1C').fontSize(11).text(
+            `ಶ್ರೀ ಸತ್ಯಗಣಪತಿ ವ್ರತ - ಸ್ಥಳವಾರು ನೋಂದಾಯಿತ ಭಕ್ತರ ಪಟ್ಟಿ (${currentYear})`,
             margin,
             y,
             { align: 'center', width: contentWidth }
           );
-          y += 18;
-
-          doc.fillColor('#4B5563').fontSize(9).text(
-            `Registered Devotees (Place-wise) - Satya Ganapati Vrata ${currentYear} | ಶ್ರೀ ಗಣೇಶೋತ್ಸವ ಸೇವಾ ಸಮಿತಿ, ನಾಜಗಾರ`,
-            margin,
-            y,
-            { align: 'center', width: contentWidth }
-          );
-          y += 14;
+          y += 13;
 
           const now = new Date();
           const dateStrFormatted = now.toLocaleDateString('en-IN', {
@@ -229,189 +222,156 @@ export const exportKatheToPdf = async (
             month: 'short',
             year: 'numeric'
           });
-          const timeStr = now.toLocaleTimeString('en-IN', {
-            hour: '2-digit',
-            minute: '2-digit'
-          });
 
-          doc.fillColor('#6B7280').fontSize(7.5).text(
-            `Generation Date: ${dateStrFormatted} ${timeStr}  |  Total Places: ${sortedPlaceKeys.length}  |  Total Devotees: ${participants.length}`,
+          doc.fillColor('#4B5563').fontSize(7.5).text(
+            `ದಿನಾಂಕ: ${dateStrFormatted}  |  ಒಟ್ಟು ಸ್ಥಳಗಳು: ${sortedPlaceKeys.length}  |  ಒಟ್ಟು ಭಕ್ತಾದಿಗಳು: ${participants.length}  |  ಶ್ರೀ ಗಣೇಶೋತ್ಸವ ಸೇವಾ ಸಮಿತಿ, ನಾಜಗಾರ`,
             margin,
             y,
-            { align: 'right', width: contentWidth }
+            { align: 'center', width: contentWidth }
           );
-          y += 12;
-
-          // Place Summary Pills Box
-          const summaryBoxHeight = sortedPlaceKeys.length > 8 ? 32 : 22;
-          doc.rect(margin, y, contentWidth, summaryBoxHeight).fill('#FFFBEB');
-          doc.rect(margin, y, contentWidth, summaryBoxHeight).strokeColor('#FDE68A').lineWidth(0.5).stroke();
-
-          const summaryText = sortedPlaceKeys
-            .map((pl) => `${pl}: ${placeGroups.get(pl)!.length}`)
-            .join('   |   ');
-
-          doc.fillColor('#92400E').fontSize(7.5).text(
-            `ಸ್ಥಳಗಳ ಸಾರಾಂಶ (Place Summary):  ${summaryText}`,
-            margin + 6,
-            y + 5,
-            { width: contentWidth - 12, align: 'left', lineBreak: true }
-          );
-          y += summaryBoxHeight + 8;
+          y += 11;
         } else {
-          doc.fillColor('#7A1C1C').fontSize(9).text(
-            `ಶ್ರೀ ಸತ್ಯಗಣಪತಿ ವ್ರತ - ಸ್ಥಳವಾರು ನೋಂದಾಯಿತ ಭಕ್ತರ ಪಟ್ಟಿ (${currentYear})${placeContinuation ? ` — ಸ್ಥಳ: ${placeContinuation} (ಮುಂದುವರಿದಿದೆ)` : ''}`,
+          // Minimal Running Header on subsequent pages
+          doc.fillColor('#6B7280').fontSize(7.5).text(
+            `ಶ್ರೀ ಸತ್ಯಗಣಪತಿ ವ್ರತ ಭಕ್ತರ ಪಟ್ಟಿ (${currentYear}) - ಸ್ಥಳವಾರು ನೋಂದಣಿ`,
             margin,
             y,
             { align: 'left', width: contentWidth }
           );
-          y += 13;
+          y += 10;
         }
       };
 
       drawDocumentHeader(true);
+      drawTableHeader();
+
+      // Continuous serial number across ALL places
+      let globalSlNo = 1;
 
       // Render each Place Group
       sortedPlaceKeys.forEach((placeKey) => {
         const groupParticipants = placeGroups.get(placeKey) || [];
+        if (groupParticipants.length === 0) return;
 
-        // Check space for Place Banner + Table Header + at least 1 row
-        if (y + 55 > pageHeight - margin - 20) {
+        // Check space for Place Divider + at least 1 row
+        if (y + 14.5 + 16.5 > pageHeight - margin - 20) {
           doc.addPage();
           y = margin;
-          drawDocumentHeader(false, placeKey);
+          drawDocumentHeader(false);
+          drawTableHeader();
         }
 
-        // Draw Place Section Banner
-        const bannerHeight = 19;
-        doc.rect(margin, y, contentWidth, bannerHeight).fill('#7A1C1C');
-        doc.fillColor('#FDE68A').fontSize(9.5).text(
-          `📍  ಸ್ಥಳ / ಪ್ರದೇಶ (PLACE / AREA): ${placeKey}`,
-          margin + 8,
-          y + 4.5,
-          { width: 340, align: 'left' }
+        // Draw slim, minimal 1-line Place Divider Row
+        doc.rect(margin, y, contentWidth, 14.5).fill('#F3F4F6');
+        doc.rect(margin, y, contentWidth, 14.5).strokeColor('#D1D5DB').lineWidth(0.5).stroke();
+        doc.fillColor('#7A1C1C').fontSize(8).text(
+          `📍  ಸ್ಥಳ / ಪ್ರದೇಶ: ${placeKey}  (${groupParticipants.length} ಭಕ್ತಾದಿಗಳು)`,
+          margin + 6,
+          y + 3,
+          { width: contentWidth - 12, align: 'left' }
         );
-        doc.fillColor('#FFFFFF').fontSize(8.5).text(
-          `ಒಟ್ಟು ಭಕ್ತಾದಿಗಳು (Devotees): ${groupParticipants.length}`,
-          margin + contentWidth - 180,
-          y + 5,
-          { width: 172, align: 'right' }
-        );
-        y += bannerHeight;
+        y += 14.5;
 
-        // Draw Table Header under the Place banner
-        drawTableHeader();
-
-        // Render rows for this place in order of addition (first added = #1)
-        groupParticipants.forEach((p, pIdx) => {
-          const hasFamily = Boolean(p.homeName);
-          const rowHeight = hasFamily ? 25 : 19;
+        // Render rows for this place with continuous global serial number
+        groupParticipants.forEach((p) => {
+          const rowHeight = 16.5;
 
           // Check if row exceeds printable height -> trigger page break
           if (y + rowHeight > pageHeight - margin - 20) {
             doc.addPage();
             y = margin;
-            drawDocumentHeader(false, placeKey);
+            drawDocumentHeader(false);
             drawTableHeader();
           }
 
-          // Alternating row background (zebra striping)
-          if (pIdx % 2 === 1) {
-            doc.rect(margin, y, contentWidth, rowHeight).fill('#F9FAFB');
+          // Alternating zebra striping
+          if (globalSlNo % 2 === 0) {
+            doc.rect(margin, y, contentWidth, rowHeight).fill('#FAFAFA');
           }
 
           // Cell border outline
-          doc.rect(margin, y, contentWidth, rowHeight).strokeColor('#E5E7EB').lineWidth(0.5).stroke();
+          doc.rect(margin, y, contentWidth, rowHeight).strokeColor('#E5E7EB').lineWidth(0.4).stroke();
 
           let curX = margin;
 
-          // 1. SL NO (Area order: #1 is first added in this place)
-          doc.fillColor('#374151').fontSize(8).text(
-            String(pIdx + 1),
+          // 1. SL NO (Continuous serial number across all places!)
+          doc.fillColor('#374151').fontSize(7.5).text(
+            String(globalSlNo),
             curX,
-            y + (rowHeight - 10) / 2,
+            y + 4,
             { width: cols[0].width, align: cols[0].align }
           );
           curX += cols[0].width;
 
-          // 2. DEVOTEE NAME + FAMILY
-          const nameY = hasFamily ? y + 2.5 : y + (rowHeight - 10) / 2;
-          doc.fillColor('#111827').fontSize(8).text(
-            `${p.firstName || ''} ${p.lastName || ''}`.trim(),
-            curX + 4,
-            nameY,
-            { width: cols[1].width - 8, align: cols[1].align, lineBreak: false, ellipsis: true }
+          // 2. DEVOTEE NAME
+          const devoteeName = `${p.firstName || ''} ${p.lastName || ''}`.trim() || p.homeName || '-';
+          doc.fillColor('#111827').fontSize(7.5).text(
+            devoteeName,
+            curX + 3,
+            y + 4,
+            { width: cols[1].width - 6, align: cols[1].align, lineBreak: false, ellipsis: true }
           );
-          if (hasFamily) {
-            doc.fillColor('#6B7280').fontSize(7).text(
-              `ಮನೆತನ: ${p.homeName}`,
-              curX + 4,
-              y + 13,
-              { width: cols[1].width - 8, align: cols[1].align, lineBreak: false, ellipsis: true }
-            );
-          }
           curX += cols[1].width;
 
-          // 3. PLACE / AREA
-          const placeText = getParticipantPlaceName(p, language);
-          doc.fillColor('#374151').fontSize(8).text(
-            placeText,
+          // 3. OTHER DETAILS
+          doc.fillColor('#4B5563').fontSize(7).text(
+            p.homeName || '-',
             curX + 3,
-            y + (rowHeight - 10) / 2,
+            y + 4,
             { width: cols[2].width - 6, align: cols[2].align, lineBreak: false, ellipsis: true }
           );
           curX += cols[2].width;
 
-          // 4. BOOK NUMBER
-          doc.fillColor('#111827').fontSize(8).text(
-            p.bookNo || p.notes || '-',
-            curX + 2,
-            y + (rowHeight - 10) / 2,
-            { width: cols[3].width - 4, align: cols[3].align, lineBreak: false, ellipsis: true }
+          // 4. PLACE / AREA
+          const placeText = getParticipantPlaceName(p, language);
+          doc.fillColor('#374151').fontSize(7.5).text(
+            placeText,
+            curX + 3,
+            y + 4,
+            { width: cols[3].width - 6, align: cols[3].align, lineBreak: false, ellipsis: true }
           );
           curX += cols[3].width;
 
-          // 5. PHONE
-          doc.fillColor('#374151').fontSize(8).text(
-            p.phone ? String(p.phone).trim() : '-',
-            curX + 2,
-            y + (rowHeight - 10) / 2,
-            { width: cols[4].width - 4, align: cols[4].align, lineBreak: false, ellipsis: true }
+          // 5. BOOK NUMBER
+          doc.fillColor('#111827').fontSize(7.5).text(
+            p.bookNo || p.notes || '-',
+            curX,
+            y + 4,
+            { width: cols[4].width, align: cols[4].align, lineBreak: false, ellipsis: true }
           );
           curX += cols[4].width;
 
-          // 6. SANKALPA STATUS
+          // 6. PHONE
+          doc.fillColor('#374151').fontSize(7.5).text(
+            p.phone ? String(p.phone).trim() : '-',
+            curX,
+            y + 4,
+            { width: cols[5].width, align: cols[5].align, lineBreak: false, ellipsis: true }
+          );
+          curX += cols[5].width;
+
+          // 7. SANKALPA STATUS
           const isConfirmed = p.confirmed || p.registrationStatus === 'CONFIRMED';
+          const statusText = isConfirmed ? 'ದೃಢೀಕೃತ' : 'ಬಾಕಿ';
           const statusColor = isConfirmed ? '#065F46' : '#92400E';
-          const statusBg = isConfirmed ? '#D1FAE5' : '#FEF3C7';
-          const statusText = isConfirmed ? 'ದೃಢೀಕರಿಸಲಾಗಿದೆ' : 'ಬಾಕಿ (PENDING)';
-
-          const badgeW = cols[5].width - 12;
-          const badgeH = 13;
-          const badgeX = curX + 6;
-          const badgeY = y + (rowHeight - badgeH) / 2;
-
-          doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 2.5).fill(statusBg);
           doc.fillColor(statusColor).fontSize(7).text(
             statusText,
-            badgeX,
-            badgeY + 2.5,
-            { width: badgeW, align: 'center' }
+            curX,
+            y + 4,
+            { width: cols[6].width, align: cols[6].align, lineBreak: false, ellipsis: true }
           );
 
           y += rowHeight;
+          globalSlNo++;
         });
-
-        // Small spacer after each place group
-        y += 7;
       });
 
       // Signature Block at the end of document
-      if (y + 55 > pageHeight - margin - 20) {
+      if (y + 40 > pageHeight - margin - 20) {
         doc.addPage();
-        y = margin + 20;
+        y = margin + 15;
       } else {
-        y += 15;
+        y += 10;
       }
 
       const sigWidth = contentWidth / 3;
@@ -419,7 +379,7 @@ export const exportKatheToPdf = async (
       doc.text('_____________________________', margin, y, { width: sigWidth, align: 'center' });
       doc.text('_____________________________', margin + sigWidth, y, { width: sigWidth, align: 'center' });
       doc.text('_____________________________', margin + sigWidth * 2, y, { width: sigWidth, align: 'center' });
-      y += 12;
+      y += 11;
 
       doc.fillColor('#111827').fontSize(7.5);
       doc.text('ಸ್ಥಳ / ವಲಯ ಪರಿಶೀಲಕರು\n(Area Coordinator)', margin, y, { width: sigWidth, align: 'center' });
@@ -430,10 +390,10 @@ export const exportKatheToPdf = async (
       const range = doc.bufferedPageRange();
       for (let i = range.start; i < range.start + range.count; i++) {
         doc.switchToPage(i);
-        doc.fillColor('#9CA3AF').fontSize(7.5).text(
+        doc.fillColor('#9CA3AF').fontSize(7).text(
           `Page ${i + 1} of ${range.count}  |  Sri Satya Ganapati Vrata - Place-wise Devotees List | Najagara Ganeshotsava`,
           margin,
-          pageHeight - 20,
+          pageHeight - 15,
           { align: 'center', width: contentWidth }
         );
       }

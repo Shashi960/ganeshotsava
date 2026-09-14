@@ -4,7 +4,7 @@ import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { exportKatheToExcel } from '../utils/excelExport';
-import { exportKatheToPdf, naturalCompareBookNo } from '../utils/pdfExport';
+import { exportKatheToPdf, naturalCompareBookNo, getParticipantPlaceName, getParticipantCreationTime } from '../utils/pdfExport';
 import api from '../services/api';
 import { 
   BookOpen, Sparkles, Check, Send, Coins, 
@@ -63,7 +63,7 @@ export const KatheView: React.FC = () => {
   // Search, Filter & Sorting State
   const [search, setSearch] = useState('');
   const [selectedPlace, setSelectedPlace] = useState('all');
-  const [sortBy, setSortBy] = useState<'book' | 'name' | 'place'>('book');
+  const [sortBy, setSortBy] = useState<'book' | 'name' | 'place'>('place');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
@@ -348,7 +348,8 @@ export const KatheView: React.FC = () => {
       const matchesSearch = 
         fullName.includes(searchStr) || 
         (p.phone || '').includes(searchStr) || 
-        (p.bookNo || '').toLowerCase().includes(searchStr);
+        (p.bookNo || '').toLowerCase().includes(searchStr) ||
+        (p.homeName || '').toLowerCase().includes(searchStr);
       
       const placeId = p.place && typeof p.place === 'object' ? p.place._id : p.place;
       const matchesPlace = selectedPlace === 'all' || placeId === selectedPlace;
@@ -358,25 +359,32 @@ export const KatheView: React.FC = () => {
 
     return list.sort((a, b) => {
       let cmp = 0;
-      if (sortBy === 'book') {
+      if (sortBy === 'place') {
+        const placeA = getParticipantPlaceName(a, language);
+        const placeB = getParticipantPlaceName(b, language);
+        cmp = placeA.localeCompare(placeB, 'kn', { sensitivity: 'base' });
+        if (cmp === 0) {
+          const timeA = getParticipantCreationTime(a);
+          const timeB = getParticipantCreationTime(b);
+          cmp = timeA - timeB;
+        }
+      } else if (sortBy === 'book') {
         cmp = naturalCompareBookNo(a.bookNo, b.bookNo);
       } else if (sortBy === 'name') {
         const nameA = `${a.firstName || ''} ${a.lastName || ''}`.trim();
         const nameB = `${b.firstName || ''} ${b.lastName || ''}`.trim();
-        cmp = nameA.localeCompare(nameB);
-      } else if (sortBy === 'place') {
-        const placeA = getPlaceName(a.place);
-        const placeB = getPlaceName(b.place);
-        cmp = placeA.localeCompare(placeB);
+        cmp = nameA.localeCompare(nameB, 'kn', { sensitivity: 'base' });
       }
 
-      if (cmp === 0 && sortBy !== 'book') {
-        cmp = naturalCompareBookNo(a.bookNo, b.bookNo);
+      if (cmp === 0 && sortBy !== 'place') {
+        const placeA = getParticipantPlaceName(a, language);
+        const placeB = getParticipantPlaceName(b, language);
+        cmp = placeA.localeCompare(placeB, 'kn', { sensitivity: 'base' });
       }
       if (cmp === 0) {
-        const nameA = `${a.firstName || ''} ${a.lastName || ''}`.trim();
-        const nameB = `${b.firstName || ''} ${b.lastName || ''}`.trim();
-        cmp = nameA.localeCompare(nameB);
+        const timeA = getParticipantCreationTime(a);
+        const timeB = getParticipantCreationTime(b);
+        cmp = timeA - timeB;
       }
 
       return sortOrder === 'asc' ? cmp : -cmp;
@@ -760,9 +768,9 @@ export const KatheView: React.FC = () => {
                 onChange={(e) => setSortBy(e.target.value as any)}
                 className="bg-warm border border-warm-dark rounded-lg px-2.5 py-1.5 font-bold text-charcoal outline-none focus:border-accent"
               >
+                <option value="place">{language === 'kn' ? 'ಸ್ಥಳ (Place / Area)' : 'Place / Area'}</option>
                 <option value="book">{language === 'kn' ? 'ಪುಸ್ತಕ ಸಂಖ್ಯೆ (Book No)' : 'Book No'}</option>
                 <option value="name">{language === 'kn' ? 'ಭಕ್ತರ ಹೆಸರು (Name)' : 'Devotee Name'}</option>
-                <option value="place">{language === 'kn' ? 'ಸ್ಥಳ (Place)' : 'Place / Area'}</option>
               </select>
               <button
                 type="button"

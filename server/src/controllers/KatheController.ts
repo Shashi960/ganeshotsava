@@ -112,7 +112,7 @@ export const getKatheParticipants = async (req: Request, res: Response, next: Ne
     const participants = await KatheParticipant.find(filter)
       .collation({ locale: 'en', numericOrdering: true })
       .populate('place')
-      .sort({ bookNo: 1, firstName: 1 })
+      .sort({ createdAt: 1 })
       .limit(l)
       .skip(skipIndex);
 

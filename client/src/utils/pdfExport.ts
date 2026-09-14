@@ -36,6 +36,51 @@ export const naturalCompareBookNo = (a?: string, b?: string): number => {
   return strA.localeCompare(strB, undefined, { numeric: true, sensitivity: 'base' });
 };
 
+/**
+ * Extracts the display name of the Place / Area for a participant.
+ * Handles populated Place object, customPlace string, or plain string ID.
+ */
+export const getParticipantPlaceName = (p: any, language: string = 'kn'): string => {
+  if (p.customPlace && typeof p.customPlace === 'string' && p.customPlace.trim()) {
+    return p.customPlace.trim();
+  }
+  if (p.place && typeof p.place === 'object') {
+    const kn = p.place.nameKannada ? String(p.place.nameKannada).trim() : '';
+    const en = p.place.name ? String(p.place.name).trim() : '';
+    const chosen = language === 'kn' ? (kn || en) : (en || kn);
+    if (chosen && chosen !== 'Other' && chosen !== 'ಇತರೆ') {
+      return chosen;
+    }
+    if (p.customPlace && typeof p.customPlace === 'string' && p.customPlace.trim()) {
+      return p.customPlace.trim();
+    }
+    return chosen || (language === 'kn' ? 'ಇತರೆ / ನಮೂದಿಸಿಲ್ಲ' : 'Unassigned / Other');
+  }
+  if (p.place && typeof p.place === 'string' && p.place.trim()) {
+    return p.place.trim();
+  }
+  return language === 'kn' ? 'ಇತರೆ / ನಮೂದಿಸಿಲ್ಲ' : 'Unassigned / Other';
+};
+
+/**
+ * Extracts addition/creation time for chronological sorting (first added is first)
+ */
+export const getParticipantCreationTime = (p: any): number => {
+  if (p.createdAt) {
+    const t = new Date(p.createdAt).getTime();
+    if (!isNaN(t) && t > 0) return t;
+  }
+  if (p._id && typeof p._id === 'string' && p._id.length >= 8) {
+    try {
+      const t = parseInt(p._id.substring(0, 8), 16) * 1000;
+      if (!isNaN(t) && t > 0) return t;
+    } catch {
+      // ignore
+    }
+  }
+  return 0;
+};
+
 export const exportKatheToPdf = async (
   participants: any[],
   language: string,
@@ -69,7 +114,7 @@ export const exportKatheToPdf = async (
           const dateStr = new Date().toISOString().split('T')[0];
           link.setAttribute(
             'download',
-            `${options?.filenamePrefix || 'satya_ganapati_vrata_bookwise'}_${dateStr}.pdf`
+            `${options?.filenamePrefix || 'satya_ganapati_vrata_placewise'}_${dateStr}.pdf`
           );
           document.body.appendChild(link);
           link.click();
@@ -99,40 +144,49 @@ export const exportKatheToPdf = async (
         { header: 'ಸಂಕಲ್ಪ ಸ್ಥಿತಿ\n(STATUS)', width: 105.28, align: 'center' as const }
       ];
 
-      // Group participants by Book No
-      const bookGroups = new Map<string, any[]>();
+      // Group participants by Place / Area
+      const placeGroups = new Map<string, any[]>();
       participants.forEach((p) => {
-        const rawBook = (p.bookNo || p.notes || '').trim();
-        const key = rawBook || (language === 'kn' ? 'ಇತರೆ / ನಮೂದಿಸಿಲ್ಲ' : 'Unassigned / Other');
-        if (!bookGroups.has(key)) {
-          bookGroups.set(key, []);
+        const placeKey = getParticipantPlaceName(p, language);
+        if (!placeGroups.has(placeKey)) {
+          placeGroups.set(placeKey, []);
         }
-        bookGroups.get(key)!.push(p);
+        placeGroups.get(placeKey)!.push(p);
       });
 
-      const isUnassignedKey = (k: string) => k.includes('ಇತರೆ') || k.includes('Unassigned');
+      const isUnassignedPlace = (k: string) =>
+        k.includes('ಇತರೆ') || k.includes('Unassigned') || k.includes('Other') || k.includes('ನಮೂದಿಸಿಲ್ಲ');
 
-      // Sort book numbers in natural order: Book 1, Book 2, Book 3... 10... Unassigned at end
-      const sortedBookKeys = Array.from(bookGroups.keys()).sort((a, b) => {
-        if (isUnassignedKey(a) && isUnassignedKey(b)) return 0;
-        if (isUnassignedKey(a)) return 1;
-        if (isUnassignedKey(b)) return -1;
-        return naturalCompareBookNo(a, b);
+      // Sort places in Kannada alphabetical order, with unassigned/other at the end
+      const sortedPlaceKeys = Array.from(placeGroups.keys()).sort((a, b) => {
+        if (isUnassignedPlace(a) && isUnassignedPlace(b)) return 0;
+        if (isUnassignedPlace(a)) return 1;
+        if (isUnassignedPlace(b)) return -1;
+        return a.localeCompare(b, 'kn', { sensitivity: 'base' });
       });
 
-      // Sort participants inside each book group by name
-      sortedBookKeys.forEach((key) => {
-        const list = bookGroups.get(key)!;
+      // Sort participants inside each place group chronologically by addition time (first added = first)
+      sortedPlaceKeys.forEach((key) => {
+        const list = placeGroups.get(key)!;
         list.sort((a, b) => {
+          const timeA = getParticipantCreationTime(a);
+          const timeB = getParticipantCreationTime(b);
+          if (timeA !== timeB) return timeA - timeB;
+
+          // Secondary tie-breaker: natural book number, then name
+          const bookA = (a.bookNo || a.notes || '').trim();
+          const bookB = (b.bookNo || b.notes || '').trim();
+          const bCmp = naturalCompareBookNo(bookA, bookB);
+          if (bCmp !== 0) return bCmp;
+
           const nameA = `${a.firstName || ''} ${a.lastName || ''}`.trim();
           const nameB = `${b.firstName || ''} ${b.lastName || ''}`.trim();
-          return nameA.localeCompare(nameB);
+          return nameA.localeCompare(nameB, 'kn', { sensitivity: 'base' });
         });
       });
 
       let y = margin;
       const currentYear = options?.year || '2026';
-      let currentActiveBook = sortedBookKeys[0] || '';
 
       const drawTableHeader = () => {
         const headerHeight = 22;
@@ -150,11 +204,11 @@ export const exportKatheToPdf = async (
         y += headerHeight;
       };
 
-      const drawDocumentHeader = (isFirstPage: boolean, bookContinuation?: string) => {
+      const drawDocumentHeader = (isFirstPage: boolean, placeContinuation?: string) => {
         if (isFirstPage) {
           // Document Header / Title
           doc.fillColor('#7A1C1C').fontSize(14).text(
-            'ಶ್ರೀ ಸತ್ಯಗಣಪತಿ ವ್ರತ - ಪುಸ್ತಕವಾರು ನೋಂದಾಯಿತ ಭಕ್ತರ ಪಟ್ಟಿ',
+            'ಶ್ರೀ ಸತ್ಯಗಣಪತಿ ವ್ರತ - ಸ್ಥಳವಾರು ನೋಂದಾಯಿತ ಭಕ್ತರ ಪಟ್ಟಿ',
             margin,
             y,
             { align: 'center', width: contentWidth }
@@ -162,7 +216,7 @@ export const exportKatheToPdf = async (
           y += 18;
 
           doc.fillColor('#4B5563').fontSize(9).text(
-            `Registered Devotees (Book-wise) - Satya Ganapati Vrata ${currentYear} | ಶ್ರೀ ಗಣೇಶೋತ್ಸವ ಸೇವಾ ಸಮಿತಿ, ನಾಜಗಾರ`,
+            `Registered Devotees (Place-wise) - Satya Ganapati Vrata ${currentYear} | ಶ್ರೀ ಗಣೇಶೋತ್ಸವ ಸೇವಾ ಸಮಿತಿ, ನಾಜಗಾರ`,
             margin,
             y,
             { align: 'center', width: contentWidth }
@@ -181,24 +235,24 @@ export const exportKatheToPdf = async (
           });
 
           doc.fillColor('#6B7280').fontSize(7.5).text(
-            `Generation Date: ${dateStrFormatted} ${timeStr}  |  Total Books: ${sortedBookKeys.length}  |  Total Devotees: ${participants.length}`,
+            `Generation Date: ${dateStrFormatted} ${timeStr}  |  Total Places: ${sortedPlaceKeys.length}  |  Total Devotees: ${participants.length}`,
             margin,
             y,
             { align: 'right', width: contentWidth }
           );
           y += 12;
 
-          // Book Summary Pills Box
-          const summaryBoxHeight = sortedBookKeys.length > 8 ? 32 : 22;
+          // Place Summary Pills Box
+          const summaryBoxHeight = sortedPlaceKeys.length > 8 ? 32 : 22;
           doc.rect(margin, y, contentWidth, summaryBoxHeight).fill('#FFFBEB');
           doc.rect(margin, y, contentWidth, summaryBoxHeight).strokeColor('#FDE68A').lineWidth(0.5).stroke();
 
-          const summaryText = sortedBookKeys
-            .map((bk) => `${bk}: ${bookGroups.get(bk)!.length}`)
+          const summaryText = sortedPlaceKeys
+            .map((pl) => `${pl}: ${placeGroups.get(pl)!.length}`)
             .join('   |   ');
 
           doc.fillColor('#92400E').fontSize(7.5).text(
-            `ಪುಸ್ತಕಗಳ ಸಾರಾಂಶ (Book Summary):  ${summaryText}`,
+            `ಸ್ಥಳಗಳ ಸಾರಾಂಶ (Place Summary):  ${summaryText}`,
             margin + 6,
             y + 5,
             { width: contentWidth - 12, align: 'left', lineBreak: true }
@@ -206,7 +260,7 @@ export const exportKatheToPdf = async (
           y += summaryBoxHeight + 8;
         } else {
           doc.fillColor('#7A1C1C').fontSize(9).text(
-            `ಶ್ರೀ ಸತ್ಯಗಣಪತಿ ವ್ರತ - ಪುಸ್ತಕವಾರು ನೋಂದಾಯಿತ ಭಕ್ತರ ಪಟ್ಟಿ (${currentYear})${bookContinuation ? ` — ಪುಸ್ತಕ: ${bookContinuation} (ಮುಂದುವರಿದಿದೆ)` : ''}`,
+            `ಶ್ರೀ ಸತ್ಯಗಣಪತಿ ವ್ರತ - ಸ್ಥಳವಾರು ನೋಂದಾಯಿತ ಭಕ್ತರ ಪಟ್ಟಿ (${currentYear})${placeContinuation ? ` — ಸ್ಥಳ: ${placeContinuation} (ಮುಂದುವರಿದಿದೆ)` : ''}`,
             margin,
             y,
             { align: 'left', width: contentWidth }
@@ -217,43 +271,39 @@ export const exportKatheToPdf = async (
 
       drawDocumentHeader(true);
 
-      let globalDevoteeCount = 0;
+      // Render each Place Group
+      sortedPlaceKeys.forEach((placeKey) => {
+        const groupParticipants = placeGroups.get(placeKey) || [];
 
-      // Render each Book Group
-      sortedBookKeys.forEach((bookKey) => {
-        currentActiveBook = bookKey;
-        const groupParticipants = bookGroups.get(bookKey) || [];
-
-        // Check space for Book Banner + Table Header + at least 1 row
+        // Check space for Place Banner + Table Header + at least 1 row
         if (y + 55 > pageHeight - margin - 20) {
           doc.addPage();
           y = margin;
-          drawDocumentHeader(false, bookKey);
+          drawDocumentHeader(false, placeKey);
         }
 
-        // Draw Book Section Banner
-        const bannerHeight = 18;
+        // Draw Place Section Banner
+        const bannerHeight = 19;
         doc.rect(margin, y, contentWidth, bannerHeight).fill('#7A1C1C');
-        doc.fillColor('#FDE68A').fontSize(9).text(
-          `📖  ಪುಸ್ತಕ ಸಂಖ್ಯೆ (BOOK NO): ${bookKey}`,
+        doc.fillColor('#FDE68A').fontSize(9.5).text(
+          `📍  ಸ್ಥಳ / ಪ್ರದೇಶ (PLACE / AREA): ${placeKey}`,
           margin + 8,
-          y + 4,
-          { width: 300, align: 'left' }
-        );
-        doc.fillColor('#FFFFFF').fontSize(8).text(
-          `ಒಟ್ಟು ಭಕ್ತಾದಿಗಳು (Devotees): ${groupParticipants.length}`,
-          margin + contentWidth - 200,
           y + 4.5,
-          { width: 190, align: 'right' }
+          { width: 340, align: 'left' }
+        );
+        doc.fillColor('#FFFFFF').fontSize(8.5).text(
+          `ಒಟ್ಟು ಭಕ್ತಾದಿಗಳು (Devotees): ${groupParticipants.length}`,
+          margin + contentWidth - 180,
+          y + 5,
+          { width: 172, align: 'right' }
         );
         y += bannerHeight;
 
-        // Draw Table Header under the Book banner
+        // Draw Table Header under the Place banner
         drawTableHeader();
 
-        // Render rows for this book
-        groupParticipants.forEach((p, bIdx) => {
-          globalDevoteeCount++;
+        // Render rows for this place in order of addition (first added = #1)
+        groupParticipants.forEach((p, pIdx) => {
           const hasFamily = Boolean(p.homeName);
           const rowHeight = hasFamily ? 25 : 19;
 
@@ -261,12 +311,12 @@ export const exportKatheToPdf = async (
           if (y + rowHeight > pageHeight - margin - 20) {
             doc.addPage();
             y = margin;
-            drawDocumentHeader(false, bookKey);
+            drawDocumentHeader(false, placeKey);
             drawTableHeader();
           }
 
           // Alternating row background (zebra striping)
-          if (bIdx % 2 === 1) {
+          if (pIdx % 2 === 1) {
             doc.rect(margin, y, contentWidth, rowHeight).fill('#F9FAFB');
           }
 
@@ -275,9 +325,9 @@ export const exportKatheToPdf = async (
 
           let curX = margin;
 
-          // 1. SL NO (Book index)
+          // 1. SL NO (Area order: #1 is first added in this place)
           doc.fillColor('#374151').fontSize(8).text(
-            String(bIdx + 1),
+            String(pIdx + 1),
             curX,
             y + (rowHeight - 10) / 2,
             { width: cols[0].width, align: cols[0].align }
@@ -303,13 +353,7 @@ export const exportKatheToPdf = async (
           curX += cols[1].width;
 
           // 3. PLACE / AREA
-          let placeText = '-';
-          if (p.place && typeof p.place === 'object') {
-            placeText = language === 'kn' ? (p.place.nameKannada || p.place.name) : (p.place.name || p.place.nameKannada);
-          } else if (p.place) {
-            placeText = String(p.place);
-          }
-
+          const placeText = getParticipantPlaceName(p, language);
           doc.fillColor('#374151').fontSize(8).text(
             placeText,
             curX + 3,
@@ -320,7 +364,7 @@ export const exportKatheToPdf = async (
 
           // 4. BOOK NUMBER
           doc.fillColor('#111827').fontSize(8).text(
-            p.bookNo || p.notes || bookKey,
+            p.bookNo || p.notes || '-',
             curX + 2,
             y + (rowHeight - 10) / 2,
             { width: cols[3].width - 4, align: cols[3].align, lineBreak: false, ellipsis: true }
@@ -358,7 +402,7 @@ export const exportKatheToPdf = async (
           y += rowHeight;
         });
 
-        // Small spacer after each book group
+        // Small spacer after each place group
         y += 7;
       });
 
@@ -378,7 +422,7 @@ export const exportKatheToPdf = async (
       y += 12;
 
       doc.fillColor('#111827').fontSize(7.5);
-      doc.text('ಪುಸ್ತಕ ಪರಿಶೀಲಕರು\n(Book In-Charge)', margin, y, { width: sigWidth, align: 'center' });
+      doc.text('ಸ್ಥಳ / ವಲಯ ಪರಿಶೀಲಕರು\n(Area Coordinator)', margin, y, { width: sigWidth, align: 'center' });
       doc.text('ಪ್ರಧಾನ ಕಾರ್ಯದರ್ಶಿ\n(General Secretary)', margin + sigWidth, y, { width: sigWidth, align: 'center' });
       doc.text('ಅಧ್ಯಕ್ಷರು\n(President)', margin + sigWidth * 2, y, { width: sigWidth, align: 'center' });
 
@@ -387,7 +431,7 @@ export const exportKatheToPdf = async (
       for (let i = range.start; i < range.start + range.count; i++) {
         doc.switchToPage(i);
         doc.fillColor('#9CA3AF').fontSize(7.5).text(
-          `Page ${i + 1} of ${range.count}  |  Sri Satya Ganapati Vrata - Book-wise Devotees List | Najagara Ganeshotsava`,
+          `Page ${i + 1} of ${range.count}  |  Sri Satya Ganapati Vrata - Place-wise Devotees List | Najagara Ganeshotsava`,
           margin,
           pageHeight - 20,
           { align: 'center', width: contentWidth }

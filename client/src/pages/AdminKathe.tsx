@@ -3,7 +3,7 @@ import { BookOpen, Download, FileText, Search, Trash2, CheckCircle, Clock, Edit2
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 import { exportKatheToExcel } from '../utils/excelExport';
-import { exportKatheToPdf, naturalCompareBookNo } from '../utils/pdfExport';
+import { exportKatheToPdf, naturalCompareBookNo, getParticipantPlaceName, getParticipantCreationTime } from '../utils/pdfExport';
 import api from '../services/api';
 
 interface Place {
@@ -38,7 +38,7 @@ export const AdminKathe: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedPlace, setSelectedPlace] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
-  const [sortBy, setSortBy] = useState<'book' | 'name' | 'place' | 'status'>('book');
+  const [sortBy, setSortBy] = useState<'book' | 'name' | 'place' | 'status'>('place');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
@@ -247,16 +247,21 @@ export const AdminKathe: React.FC = () => {
 
     return list.sort((a, b) => {
       let cmp = 0;
-      if (sortBy === 'book') {
+      if (sortBy === 'place') {
+        const placeA = getParticipantPlaceName(a, language);
+        const placeB = getParticipantPlaceName(b, language);
+        cmp = placeA.localeCompare(placeB, 'kn', { sensitivity: 'base' });
+        if (cmp === 0) {
+          const timeA = getParticipantCreationTime(a);
+          const timeB = getParticipantCreationTime(b);
+          cmp = timeA - timeB;
+        }
+      } else if (sortBy === 'book') {
         cmp = naturalCompareBookNo(a.bookNo, b.bookNo);
       } else if (sortBy === 'name') {
         const nameA = `${a.firstName || ''} ${a.lastName || ''}`.trim();
         const nameB = `${b.firstName || ''} ${b.lastName || ''}`.trim();
-        cmp = nameA.localeCompare(nameB);
-      } else if (sortBy === 'place') {
-        const placeA = getPlaceName(a.place);
-        const placeB = getPlaceName(b.place);
-        cmp = placeA.localeCompare(placeB);
+        cmp = nameA.localeCompare(nameB, 'kn', { sensitivity: 'base' });
       } else if (sortBy === 'status') {
         const statA = a.confirmed ? 1 : 0;
         const statB = b.confirmed ? 1 : 0;
@@ -264,13 +269,15 @@ export const AdminKathe: React.FC = () => {
       }
 
       // Secondary tie-breaker
-      if (cmp === 0 && sortBy !== 'book') {
-        cmp = naturalCompareBookNo(a.bookNo, b.bookNo);
+      if (cmp === 0 && sortBy !== 'place') {
+        const placeA = getParticipantPlaceName(a, language);
+        const placeB = getParticipantPlaceName(b, language);
+        cmp = placeA.localeCompare(placeB, 'kn', { sensitivity: 'base' });
       }
       if (cmp === 0) {
-        const nameA = `${a.firstName || ''} ${a.lastName || ''}`.trim();
-        const nameB = `${b.firstName || ''} ${b.lastName || ''}`.trim();
-        cmp = nameA.localeCompare(nameB);
+        const timeA = getParticipantCreationTime(a);
+        const timeB = getParticipantCreationTime(b);
+        cmp = timeA - timeB;
       }
 
       return sortOrder === 'asc' ? cmp : -cmp;
@@ -364,9 +371,9 @@ export const AdminKathe: React.FC = () => {
               onChange={(e) => setSortBy(e.target.value as any)}
               className="bg-warm border border-warm-dark rounded-lg px-2.5 py-1.5 font-bold text-charcoal outline-none focus:border-accent"
             >
+              <option value="place">Place / Area (ಸ್ಥಳ)</option>
               <option value="book">Book No (ಪುಸ್ತಕ ಸಂಖ್ಯೆ)</option>
               <option value="name">Devotee Name (ಹೆಸರು)</option>
-              <option value="place">Place / Area (ಸ್ಥಳ)</option>
               <option value="status">Status (ದೃಢೀಕರಣ)</option>
             </select>
             <button

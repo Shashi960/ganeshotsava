@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { getParticipantPlaceName, getParticipantCreationTime } from './pdfExport';
 
 export interface ExportKatheOptions {
   headers?: string[];
@@ -12,6 +13,7 @@ export interface ExportKatheOptions {
  * Features:
  * - Proper UTF-8 OpenXML format: Natively displays Kannada (ನಾಜಗಾರ, ಕಡೇ, ಕರ್ಕಿ), Telugu, Hindi, English without mojibake.
  * - Phone numbers stored strictly as text cells (`t: 's'`, `z: '@'`): Prevents scientific notation (e.g. 8.05E+09) and preserves leading zeros.
+ * - Place-wise grouped and sorted chronologically by addition time.
  * - Auto-adjusted column widths for clear presentation.
  */
 export const exportKatheToExcel = (
@@ -31,25 +33,22 @@ export const exportKatheToExcel = (
   ];
 
   const sortedParticipants = [...participants].sort((a, b) => {
-    const bookA = (a.bookNo || a.notes || '').trim();
-    const bookB = (b.bookNo || b.notes || '').trim();
-    if (!bookA && !bookB) return 0;
-    if (!bookA) return 1;
-    if (!bookB) return -1;
-    const cmp = bookA.localeCompare(bookB, undefined, { numeric: true, sensitivity: 'base' });
-    if (cmp !== 0) return cmp;
+    const placeA = getParticipantPlaceName(a, language);
+    const placeB = getParticipantPlaceName(b, language);
+    const pCmp = placeA.localeCompare(placeB, 'kn', { sensitivity: 'base' });
+    if (pCmp !== 0) return pCmp;
+
+    const timeA = getParticipantCreationTime(a);
+    const timeB = getParticipantCreationTime(b);
+    if (timeA !== timeB) return timeA - timeB;
+
     const nameA = `${a.firstName || ''} ${a.lastName || ''}`.trim();
     const nameB = `${b.firstName || ''} ${b.lastName || ''}`.trim();
-    return nameA.localeCompare(nameB);
+    return nameA.localeCompare(nameB, 'kn', { sensitivity: 'base' });
   });
 
   const rows = sortedParticipants.map((p) => {
-    let placeName = '';
-    if (p.place && typeof p.place === 'object') {
-      placeName = language === 'kn' ? (p.place.nameKannada || p.place.name) : (p.place.name || p.place.nameKannada);
-    } else if (p.place) {
-      placeName = String(p.place);
-    }
+    const placeName = getParticipantPlaceName(p, language);
 
     return [
       `${p.firstName || ''} ${p.lastName || ''}`.trim(),

@@ -19,7 +19,7 @@ interface VideoItem {
 
 export const MediaView: React.FC = () => {
   const { language, t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'photos' | 'videos'>('photos');
+  const [activeTab, setActiveTab] = useState<'photos' | 'videos'>('videos');
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,8 +67,8 @@ export const MediaView: React.FC = () => {
         <button
           onClick={() => setActiveTab('videos')}
           className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold uppercase transition ${activeTab === 'videos'
-              ? 'bg-primary text-warm border border-primary'
-              : 'bg-warm-dark hover:bg-warm-dark/80 text-charcoal border border-transparent'
+            ? 'bg-primary text-warm border border-primary'
+            : 'bg-warm-dark hover:bg-warm-dark/80 text-charcoal border border-transparent'
             }`}
         >
           <VideoIcon className="h-4 w-4" />
@@ -78,8 +78,8 @@ export const MediaView: React.FC = () => {
         <button
           onClick={() => setActiveTab('photos')}
           className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold uppercase transition ${activeTab === 'photos'
-              ? 'bg-primary text-warm border border-primary'
-              : 'bg-warm-dark hover:bg-warm-dark/80 text-charcoal border border-transparent'
+            ? 'bg-primary text-warm border border-primary'
+            : 'bg-warm-dark hover:bg-warm-dark/80 text-charcoal border border-transparent'
             }`}
         >
           <Image className="h-4 w-4" />

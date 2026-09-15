@@ -63,28 +63,27 @@ export const MediaView: React.FC = () => {
 
       {/* Tabs */}
       <div className="flex justify-center border-b border-warm-dark pb-4 gap-4">
-        <button
-          onClick={() => setActiveTab('photos')}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold uppercase transition ${
-            activeTab === 'photos'
-              ? 'bg-primary text-warm border border-primary'
-              : 'bg-warm-dark hover:bg-warm-dark/80 text-charcoal border border-transparent'
-          }`}
-        >
-          <Image className="h-4 w-4" />
-          <span>{language === 'kn' ? 'ಚಿತ್ರಗಳು' : 'Photos'}</span>
-        </button>
 
         <button
           onClick={() => setActiveTab('videos')}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold uppercase transition ${
-            activeTab === 'videos'
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold uppercase transition ${activeTab === 'videos'
               ? 'bg-primary text-warm border border-primary'
               : 'bg-warm-dark hover:bg-warm-dark/80 text-charcoal border border-transparent'
-          }`}
+            }`}
         >
           <VideoIcon className="h-4 w-4" />
           <span>{language === 'kn' ? 'ವೀಡಿಯೋಗಳು' : 'Videos'}</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('photos')}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold uppercase transition ${activeTab === 'photos'
+              ? 'bg-primary text-warm border border-primary'
+              : 'bg-warm-dark hover:bg-warm-dark/80 text-charcoal border border-transparent'
+            }`}
+        >
+          <Image className="h-4 w-4" />
+          <span>{language === 'kn' ? 'ಚಿತ್ರಗಳು' : 'Photos'}</span>
         </button>
       </div>
 
